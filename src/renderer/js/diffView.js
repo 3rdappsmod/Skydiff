@@ -45,7 +45,7 @@
     const btn = document.createElement("button");
     btn.type = "button";
     btn.className = "diff-placeholder-btn";
-    btn.textContent = "⋯ 변경 없는 " + row.count + "줄 표시 ⋯";
+    btn.textContent = global.SkyDiffI18n.t("unchangedLinesHidden", { n: row.count });
     btn.addEventListener("click", () => onExpand(row));
     wrap.appendChild(btn);
     return wrap;

@@ -224,7 +224,7 @@
   }
 
   function toUnifiedPatch(originalText, modifiedText, originalName, modifiedName) {
-    return global.Diff.createTwoFilesPatch(originalName || "원본", modifiedName || "수정본", originalText, modifiedText);
+    return global.Diff.createTwoFilesPatch(originalName || "Original", modifiedName || "Modified", originalText, modifiedText);
   }
 
   global.SkyDiffEngine = { compute, preprocess, toUnifiedPatch };

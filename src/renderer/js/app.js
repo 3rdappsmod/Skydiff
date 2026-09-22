@@ -3,7 +3,7 @@
 (function () {
   const state = {
     settings: null,
-    title: "제목 없는 비교",
+    title: "",
     description: "",
     currentComparisonId: null,
     lastDiffResult: null,
@@ -212,8 +212,8 @@
   }
 
   function updateStats(stats) {
-    $("#statRemovedCount").textContent = stats.removed + " 삭제";
-    $("#statAddedCount").textContent = stats.added + " 추가";
+    $("#statRemovedCount").textContent = window.SkyDiffI18n.t("deletedCount", { n: stats.removed });
+    $("#statAddedCount").textContent = window.SkyDiffI18n.t("addedCount", { n: stats.added });
   }
 
   // 입력창은 항상 보이며, 비교 결과는 그 아래에 실시간으로 갱신된다 (화면 전환 없음).
@@ -221,7 +221,7 @@
     const { original, modified } = getEditorValues();
 
     if (!original.trim() && !modified.trim()) {
-      if (manual) showWarning("비교할 텍스트를 입력해주세요.");
+      if (manual) showWarning(window.SkyDiffI18n.t("enterTextToCompare"));
       return;
     }
 
@@ -234,12 +234,12 @@
     renderDiff();
     updateStats(result.stats);
 
-    if (result.identical) showWarning("두 텍스트가 동일합니다.");
+    if (result.identical) showWarning(window.SkyDiffI18n.t("textsIdentical"));
   }
 
   function resetAll() {
     setEditorValues("", "");
-    state.title = "제목 없는 비교";
+    state.title = window.SkyDiffI18n.t("untitledDiff");
     state.description = "";
     state.currentComparisonId = null;
     state.lastDiffResult = null;
@@ -247,7 +247,7 @@
     $("#titleInput").value = state.title;
     hideWarning();
     updateStats({ added: 0, removed: 0 });
-    showDiffPlaceholder("원본과 수정본을 입력하면 비교 결과가 여기에 표시됩니다.");
+    showDiffPlaceholder(window.SkyDiffI18n.t("emptyStatePlaceholder"));
   }
 
   // ---------------- 파일 열기 / 드래그앤드롭 ----------------
@@ -294,7 +294,7 @@
 
       const input = document.createElement("input");
       input.type = "text";
-      input.placeholder = "패턴 입력...";
+      input.placeholder = window.SkyDiffI18n.t("patternPlaceholder");
       input.value = rule.pattern || "";
       input.addEventListener("input", () => {
         state.settings.excludePatterns[idx].pattern = input.value;
@@ -310,13 +310,13 @@
         onProcessingOptionChanged();
       });
       regexLabel.appendChild(regexCb);
-      regexLabel.appendChild(document.createTextNode("정규식"));
+      regexLabel.appendChild(document.createTextNode(window.SkyDiffI18n.t("regex")));
 
       const delBtn = document.createElement("button");
       delBtn.type = "button";
       delBtn.className = "icon-btn";
       delBtn.textContent = "×";
-      delBtn.title = "삭제";
+      delBtn.title = window.SkyDiffI18n.t("delete");
       delBtn.addEventListener("click", () => {
         state.settings.excludePatterns.splice(idx, 1);
         renderExcludeList();
@@ -351,7 +351,7 @@
     if (!list || list.length === 0) {
       const p = document.createElement("p");
       p.className = "empty-hint";
-      p.textContent = "저장한 비교 결과가 여기에 표시됩니다.";
+      p.textContent = window.SkyDiffI18n.t("noSavedComparisons");
       el.appendChild(p);
       return;
     }
@@ -364,7 +364,7 @@
       main.className = "saved-item-main";
       const title = document.createElement("div");
       title.className = "saved-item-title";
-      title.textContent = item.title || "제목 없는 비교";
+      title.textContent = item.title || window.SkyDiffI18n.t("untitledDiff");
       const date = document.createElement("div");
       date.className = "saved-item-date";
       date.textContent = formatDate(item.updatedAt || item.createdAt);
@@ -375,7 +375,7 @@
       delBtn.type = "button";
       delBtn.className = "icon-btn";
       delBtn.textContent = "×";
-      delBtn.title = "삭제";
+      delBtn.title = window.SkyDiffI18n.t("delete");
       delBtn.addEventListener("click", async (e) => {
         e.stopPropagation();
         await window.skydiff.deleteComparison(item.id);
@@ -391,7 +391,7 @@
 
   function loadComparison(item) {
     state.currentComparisonId = item.id;
-    state.title = item.title || "제목 없는 비교";
+    state.title = item.title || window.SkyDiffI18n.t("untitledDiff");
     state.description = item.description || "";
     $("#titleInput").value = state.title;
     setEditorValues(item.original || "", item.modified || "");
@@ -406,7 +406,7 @@
   async function saveCurrentComparison() {
     const { original, modified } = getEditorValues();
     if (!original.trim() && !modified.trim()) {
-      toast("저장할 내용이 없습니다.");
+      toast(window.SkyDiffI18n.t("nothingToSave"));
       return;
     }
     const payload = {
@@ -418,7 +418,7 @@
       settings: state.settings
     };
     await window.skydiff.saveComparison(payload);
-    toast("비교 결과를 저장했습니다.");
+    toast(window.SkyDiffI18n.t("comparisonSaved"));
     refreshSavedList();
   }
 
@@ -427,25 +427,30 @@
   async function exportDiff() {
     const { original, modified } = getEditorValues();
     if (!original.trim() && !modified.trim()) {
-      toast("내보낼 내용이 없습니다.");
+      toast(window.SkyDiffI18n.t("nothingToExport"));
       return;
     }
-    const patch = window.SkyDiffEngine.toUnifiedPatch(original, modified, "원본", "수정본");
+    const originalLabel = window.SkyDiffI18n.t("original");
+    const modifiedLabel = window.SkyDiffI18n.t("modified");
+    const patch = window.SkyDiffEngine.toUnifiedPatch(original, modified, originalLabel, modifiedLabel);
     const result = await window.skydiff.saveTextFile((state.title || "diff") + ".diff", patch);
-    if (!result.canceled) toast("내보내기가 완료되었습니다.");
+    if (!result.canceled) toast(window.SkyDiffI18n.t("exportComplete"));
   }
 
   async function shareDiff() {
     if (!state.lastDiffResult) {
-      toast("먼저 비교를 실행해주세요.");
+      toast(window.SkyDiffI18n.t("runCompareFirst"));
       return;
     }
     const { stats } = state.lastDiffResult;
     const { original, modified } = getEditorValues();
-    const patch = window.SkyDiffEngine.toUnifiedPatch(original, modified, "원본", "수정본");
-    const summary = `${state.title} (${stats.removed} 삭제, ${stats.added} 추가)\n\n${patch}`;
+    const originalLabel = window.SkyDiffI18n.t("original");
+    const modifiedLabel = window.SkyDiffI18n.t("modified");
+    const patch = window.SkyDiffEngine.toUnifiedPatch(original, modified, originalLabel, modifiedLabel);
+    const statsLine = `(${window.SkyDiffI18n.t("deletedCount", { n: stats.removed })}, ${window.SkyDiffI18n.t("addedCount", { n: stats.added })})`;
+    const summary = `${state.title} ${statsLine}\n\n${patch}`;
     await window.skydiff.writeClipboard(summary);
-    toast("비교 결과를 클립보드에 복사했습니다.");
+    toast(window.SkyDiffI18n.t("copiedToClipboard"));
   }
 
   // ---------------- 이벤트 바인딩 ----------------
@@ -471,7 +476,7 @@
     $("#btnSaveDescription").addEventListener("click", () => {
       state.description = $("#descriptionInput").value;
       closeModal("descriptionModal");
-      toast("설명을 저장했습니다.");
+      toast(window.SkyDiffI18n.t("descriptionSaved"));
     });
 
     document.querySelectorAll("[data-close-modal]").forEach((elm) => {
@@ -490,11 +495,11 @@
 
     $("#btnCopyOriginal").addEventListener("click", async () => {
       await window.skydiff.writeClipboard(getEditorValues().original);
-      toast("원본을 복사했습니다.");
+      toast(window.SkyDiffI18n.t("originalCopied"));
     });
     $("#btnCopyModified").addEventListener("click", async () => {
       await window.skydiff.writeClipboard(getEditorValues().modified);
-      toast("수정본을 복사했습니다.");
+      toast(window.SkyDiffI18n.t("modifiedCopied"));
     });
 
     $("#btnFirstChange").addEventListener("click", () => {
@@ -592,7 +597,7 @@
 
     $("#btnAboutGithub").addEventListener("click", () => {
       window.skydiff.writeClipboard("https://github.com/3rdappsmod/SkyDiff");
-      toast("GitHub 주소를 클립보드에 복사했습니다.");
+      toast(window.SkyDiffI18n.t("githubUrlCopied"));
     });
 
     wireDragAndDrop($("#originalEditor"), { setValue: (v) => originalEditor.setValue(v) });
@@ -657,7 +662,11 @@
   // ---------------- 초기화 ----------------
 
   async function boot() {
-    state.settings = await window.skydiff.getSettings();
+    const [settings, locale] = await Promise.all([window.skydiff.getSettings(), window.skydiff.getLocale()]);
+    state.settings = settings;
+
+    window.SkyDiffI18n.init(locale);
+    state.title = $("#titleInput").value;
 
     await new Promise((resolve) => {
       window.require.config({ paths: { vs: "../../vendor/monaco/vs" } });
@@ -669,7 +678,8 @@
     setLanguage(state.settings.syntax);
     wireEvents();
     refreshSavedList();
-    showDiffPlaceholder("원본과 수정본을 입력하면 비교 결과가 여기에 표시됩니다.");
+    updateStats({ added: 0, removed: 0 });
+    showDiffPlaceholder(window.SkyDiffI18n.t("emptyStatePlaceholder"));
   }
 
   document.addEventListener("DOMContentLoaded", boot);

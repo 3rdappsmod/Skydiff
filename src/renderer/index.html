@@ -12,15 +12,15 @@
 
   <header class="topbar">
     <div class="topbar-left">
-      <button id="btnCollapseSidebar" class="icon-btn" title="사이드바 접기/펼치기">&#9776;</button>
-      <input id="titleInput" class="title-input" value="제목 없는 비교" spellcheck="false" />
+      <button id="btnCollapseSidebar" class="icon-btn" data-i18n-title="toggleSidebar" title="사이드바 접기/펼치기">&#9776;</button>
+      <input id="titleInput" class="title-input" data-i18n-value="untitledDiff" value="제목 없는 비교" spellcheck="false" />
     </div>
     <div class="topbar-right">
-      <button id="btnReset" class="btn">초기화</button>
-      <button id="btnExport" class="btn">내보내기</button>
-      <button id="btnSave" class="btn">저장</button>
-      <button id="btnShare" class="btn">공유</button>
-      <button id="btnDescription" class="btn">설명</button>
+      <button id="btnReset" class="btn" data-i18n="reset">초기화</button>
+      <button id="btnExport" class="btn" data-i18n="export">내보내기</button>
+      <button id="btnSave" class="btn" data-i18n="save">저장</button>
+      <button id="btnShare" class="btn" data-i18n="share">공유</button>
+      <button id="btnDescription" class="btn" data-i18n="description">설명</button>
     </div>
   </header>
 
@@ -30,50 +30,50 @@
       <div class="sidebar-scroll">
 
         <section class="side-section">
-          <h3>표시</h3>
+          <h3 data-i18n="display">표시</h3>
 
           <div class="field">
-            <label>레이아웃</label>
+            <label data-i18n="layout">레이아웃</label>
             <div class="segmented" id="layoutToggle">
-              <button type="button" data-value="side-by-side" class="seg-btn active">나란히 보기</button>
-              <button type="button" data-value="unified" class="seg-btn">합쳐 보기</button>
+              <button type="button" data-value="side-by-side" class="seg-btn active" data-i18n="layoutSideBySide">나란히 보기</button>
+              <button type="button" data-value="unified" class="seg-btn" data-i18n="layoutUnified">합쳐 보기</button>
             </div>
           </div>
 
           <div class="field switch-field">
-            <label for="liveEditToggle">실시간 편집</label>
+            <label for="liveEditToggle" data-i18n="liveEdit">실시간 편집</label>
             <input type="checkbox" id="liveEditToggle" class="switch" checked />
           </div>
 
           <div class="field switch-field">
-            <label for="ignoreWhitespaceToggle">공백 변경 숨기기</label>
+            <label for="ignoreWhitespaceToggle" data-i18n="ignoreWhitespace">공백 변경 숨기기</label>
             <input type="checkbox" id="ignoreWhitespaceToggle" class="switch" />
           </div>
 
           <div class="field switch-field">
-            <label for="hideUnchangedToggle">변경 없는 행 숨기기</label>
+            <label for="hideUnchangedToggle" data-i18n="hideUnchanged">변경 없는 행 숨기기</label>
             <input type="checkbox" id="hideUnchangedToggle" class="switch" />
           </div>
 
           <div class="field switch-field">
-            <label for="wordWrapToggle">줄바꿈 비활성화</label>
+            <label for="wordWrapToggle" data-i18n="disableWordWrap">줄바꿈 비활성화</label>
             <input type="checkbox" id="wordWrapToggle" class="switch" />
           </div>
 
           <div class="field">
-            <label for="granularitySelect">비교 단위</label>
+            <label for="granularitySelect" data-i18n="granularity">비교 단위</label>
             <select id="granularitySelect">
-              <option value="smart">스마트</option>
-              <option value="line">줄 단위</option>
-              <option value="word">단어 단위</option>
-              <option value="char">문자 단위</option>
+              <option value="smart" data-i18n="granularitySmart">스마트</option>
+              <option value="line" data-i18n="granularityLine">줄 단위</option>
+              <option value="word" data-i18n="granularityWord">단어 단위</option>
+              <option value="char" data-i18n="granularityChar">문자 단위</option>
             </select>
           </div>
 
           <div class="field">
-            <label for="syntaxSelect">구문</label>
+            <label for="syntaxSelect" data-i18n="syntax">구문</label>
             <select id="syntaxSelect">
-              <option value="plaintext">없음</option>
+              <option value="plaintext" data-i18n="syntaxNone">없음</option>
               <option value="javascript">JavaScript</option>
               <option value="typescript">TypeScript</option>
               <option value="json">JSON</option>
@@ -97,51 +97,51 @@
 
         <section class="side-section">
           <button type="button" class="side-expand-btn" id="btnAppearance">
-            <span>모양 변경</span><span class="chevron">&#8250;</span>
+            <span data-i18n="appearance">모양 변경</span><span class="chevron">&#8250;</span>
           </button>
           <div class="side-expand-panel hidden" id="appearancePanel">
             <div class="field color-field">
-              <label for="colorAdded">추가된 내용 색상</label>
+              <label for="colorAdded" data-i18n="addedColor">추가된 내용 색상</label>
               <input type="color" id="colorAdded" />
             </div>
             <div class="field color-field">
-              <label for="colorRemoved">삭제된 내용 색상</label>
+              <label for="colorRemoved" data-i18n="removedColor">삭제된 내용 색상</label>
               <input type="color" id="colorRemoved" />
             </div>
-            <button type="button" class="link-btn" id="btnResetColors">기본값으로 재설정</button>
+            <button type="button" class="link-btn" id="btnResetColors" data-i18n="resetColors">기본값으로 재설정</button>
           </div>
         </section>
 
         <section class="side-section">
-          <h3>처리</h3>
+          <h3 data-i18n="processing">처리</h3>
 
           <button type="button" class="side-expand-btn" id="btnExclude">
-            <span>제외</span><span class="chevron">&#8250;</span>
+            <span data-i18n="exclude">제외</span><span class="chevron">&#8250;</span>
           </button>
           <div class="side-expand-panel hidden" id="excludePanel">
-            <p class="hint">비교에서 제외할 패턴을 추가하세요. (일반 텍스트 또는 정규식)</p>
+            <p class="hint" data-i18n="excludeHint">비교에서 제외할 패턴을 추가하세요. (일반 텍스트 또는 정규식)</p>
             <div id="excludeList" class="exclude-list"></div>
-            <button type="button" class="link-btn" id="btnAddExclude">+ 패턴 추가</button>
+            <button type="button" class="link-btn" id="btnAddExclude" data-i18n="addPattern">+ 패턴 추가</button>
           </div>
 
           <button type="button" class="side-expand-btn" id="btnTransform">
-            <span>텍스트 변환</span><span class="chevron">&#8250;</span>
+            <span data-i18n="textTransform">텍스트 변환</span><span class="chevron">&#8250;</span>
           </button>
           <div class="side-expand-panel hidden" id="transformPanel">
             <div class="field switch-field">
-              <label for="tfTrim">앞뒤 공백 제거</label>
+              <label for="tfTrim" data-i18n="trimLines">앞뒤 공백 제거</label>
               <input type="checkbox" id="tfTrim" class="switch" />
             </div>
             <div class="field switch-field">
-              <label for="tfIgnoreCase">대소문자 무시</label>
+              <label for="tfIgnoreCase" data-i18n="ignoreCase">대소문자 무시</label>
               <input type="checkbox" id="tfIgnoreCase" class="switch" />
             </div>
             <div class="field switch-field">
-              <label for="tfRemoveEmpty">빈 줄 제거</label>
+              <label for="tfRemoveEmpty" data-i18n="removeEmptyLines">빈 줄 제거</label>
               <input type="checkbox" id="tfRemoveEmpty" class="switch" />
             </div>
             <div class="field switch-field">
-              <label for="tfSort">줄 정렬</label>
+              <label for="tfSort" data-i18n="sortLines">줄 정렬</label>
               <input type="checkbox" id="tfSort" class="switch" />
             </div>
           </div>
@@ -149,7 +149,7 @@
 
         <section class="side-section">
           <button type="button" class="side-action-btn" id="btnFirstChange">
-            <span class="icon">&#8677;</span> 첫 변경으로
+            <span class="icon">&#8677;</span> <span data-i18n="firstChange">첫 변경으로</span>
           </button>
         </section>
 
@@ -157,10 +157,10 @@
 
       <div class="saved-comparisons">
         <div class="saved-header">
-          <span>저장된 비교 결과</span>
+          <span data-i18n="savedComparisons">저장된 비교 결과</span>
         </div>
         <div class="saved-list" id="savedList">
-          <p class="empty-hint">저장한 비교 결과가 여기에 표시됩니다.</p>
+          <p class="empty-hint" data-i18n="noSavedComparisons">저장한 비교 결과가 여기에 표시됩니다.</p>
         </div>
       </div>
     </aside>
@@ -172,35 +172,35 @@
       <div id="inputView" class="input-view">
         <div class="input-pane">
           <div class="pane-header">
-            <span>원본</span>
-            <button type="button" class="link-btn" id="btnOpenOriginal">파일 열기</button>
+            <span data-i18n="original">원본</span>
+            <button type="button" class="link-btn" id="btnOpenOriginal" data-i18n="openFile">파일 열기</button>
           </div>
           <div id="originalEditor" class="monaco-host draggable"></div>
         </div>
         <div class="input-pane">
           <div class="pane-header">
-            <span>수정본</span>
-            <button type="button" class="link-btn" id="btnOpenModified">파일 열기</button>
+            <span data-i18n="modified">수정본</span>
+            <button type="button" class="link-btn" id="btnOpenModified" data-i18n="openFile">파일 열기</button>
           </div>
           <div id="modifiedEditor" class="monaco-host draggable"></div>
         </div>
       </div>
 
       <div class="compare-bar">
-        <button type="button" id="btnCompare" class="btn btn-primary">비교하기</button>
+        <button type="button" id="btnCompare" class="btn btn-primary" data-i18n="compare">비교하기</button>
       </div>
 
       <!-- 비교 결과: 입력창과 항상 함께 표시되며 실시간으로 갱신됨 -->
       <div id="resultView" class="result-view">
         <div class="result-stats">
           <div class="stat stat-removed">
-            <span id="statRemovedCount">0 삭제</span>
-            <button type="button" class="link-btn" id="btnCopyOriginal">복사</button>
+            <span id="statRemovedCount">0</span>
+            <button type="button" class="link-btn" id="btnCopyOriginal" data-i18n="copy">복사</button>
           </div>
-          <button type="button" class="icon-btn" id="btnSwapSides" title="원본/수정본 바꾸기">&#8646;</button>
+          <button type="button" class="icon-btn" id="btnSwapSides" data-i18n-title="swapSides" title="원본/수정본 바꾸기">&#8646;</button>
           <div class="stat stat-added">
-            <span id="statAddedCount">0 추가</span>
-            <button type="button" class="link-btn" id="btnCopyModified">복사</button>
+            <span id="statAddedCount">0</span>
+            <button type="button" class="link-btn" id="btnCopyModified" data-i18n="copy">복사</button>
           </div>
         </div>
         <div id="diffContainer" class="diff-container"></div>
@@ -213,11 +213,11 @@
 <div id="descriptionModal" class="modal hidden">
   <div class="modal-backdrop" data-close-modal="descriptionModal"></div>
   <div class="modal-box">
-    <h2>설명</h2>
-    <textarea id="descriptionInput" class="modal-textarea" placeholder="이 비교에 대한 설명을 입력하세요..."></textarea>
+    <h2 data-i18n="description">설명</h2>
+    <textarea id="descriptionInput" class="modal-textarea" data-i18n-placeholder="descriptionPlaceholder" placeholder="이 비교에 대한 설명을 입력하세요..."></textarea>
     <div class="modal-actions">
-      <button type="button" class="btn" data-close-modal="descriptionModal">취소</button>
-      <button type="button" class="btn btn-primary" id="btnSaveDescription">저장</button>
+      <button type="button" class="btn" data-close-modal="descriptionModal" data-i18n="cancel">취소</button>
+      <button type="button" class="btn btn-primary" id="btnSaveDescription" data-i18n="save">저장</button>
     </div>
   </div>
 </div>
@@ -227,12 +227,12 @@
   <div class="modal-backdrop" data-close-modal="aboutModal"></div>
   <div class="modal-box">
     <h2>SkyDiff</h2>
-    <p class="about-version">버전 <span id="aboutVersion">-</span></p>
-    <p class="about-desc">하늘색 테마의 크로스플랫폼 텍스트 비교(diff) 프로그램입니다.</p>
-    <p class="about-libs">사용 라이브러리: Monaco Editor, jsdiff, Electron</p>
+    <p class="about-version"><span data-i18n="version">버전</span> <span id="aboutVersion">-</span></p>
+    <p class="about-desc" data-i18n="aboutDescription">하늘색 테마의 크로스플랫폼 텍스트 비교(diff) 프로그램입니다.</p>
+    <p class="about-libs" data-i18n="aboutLibs">사용 라이브러리: Monaco Editor, jsdiff, Electron</p>
     <div class="modal-actions">
-      <button type="button" class="btn" id="btnAboutGithub">GitHub 저장소</button>
-      <button type="button" class="btn btn-primary" data-close-modal="aboutModal">닫기</button>
+      <button type="button" class="btn" id="btnAboutGithub" data-i18n="githubRepo">GitHub 저장소</button>
+      <button type="button" class="btn btn-primary" data-close-modal="aboutModal" data-i18n="close">닫기</button>
     </div>
   </div>
 </div>
@@ -241,6 +241,7 @@
 
 <script src="../../vendor/diff/diff.min.js"></script>
 <script src="../../vendor/monaco/vs/loader.js"></script>
+<script src="js/i18n.js"></script>
 <script src="js/diffEngine.js"></script>
 <script src="js/diffView.js"></script>
 <script src="js/app.js"></script>

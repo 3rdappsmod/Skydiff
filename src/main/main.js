@@ -1,6 +1,6 @@
 "use strict";
 
-const { app, BrowserWindow, ipcMain, dialog, clipboard, nativeTheme } = require("electron");
+const { app, BrowserWindow, ipcMain, dialog, clipboard } = require("electron");
 const path = require("path");
 const fs = require("fs");
 const crypto = require("crypto");
@@ -8,16 +8,25 @@ const crypto = require("crypto");
 const store = require("./store");
 const { buildMenu } = require("./menu");
 const { setupAutoUpdater } = require("./updater");
+const { resolveLocale, t } = require("./i18n");
 
 const appIconPng = path.join(__dirname, "..", "..", "assets", "icons", "512x512.png");
 
 let mainWindow = null;
 let updater = null;
+// app.getLocale() 는 ready 이전엔 Windows/Linux 에서 부정확할 수 있어 whenReady 이후에 확정한다.
+let locale = "en";
+const L = (key) => t(locale, key);
 
-const TEXT_FILE_FILTERS = [
-  { name: "텍스트 파일", extensions: ["txt", "md", "json", "js", "ts", "jsx", "tsx", "html", "css", "xml", "yml", "yaml", "csv", "log"] },
-  { name: "모든 파일", extensions: ["*"] }
-];
+function textFileFilters() {
+  return [
+    {
+      name: L("textFiles"),
+      extensions: ["txt", "md", "json", "js", "ts", "jsx", "tsx", "html", "css", "xml", "yml", "yaml", "csv", "log"]
+    },
+    { name: L("allFiles"), extensions: ["*"] }
+  ];
+}
 
 function createWindow() {
   const bounds = store.get("windowBounds");
@@ -53,8 +62,8 @@ function createWindow() {
   mainWindow.on("move", persistBounds);
   mainWindow.on("close", persistBounds);
 
-  buildMenu(mainWindow);
-  updater = setupAutoUpdater(mainWindow);
+  buildMenu(mainWindow, locale);
+  updater = setupAutoUpdater(mainWindow, locale);
 
   mainWindow.webContents.on("did-finish-load", () => {
     if (!app.isPackaged) return;
@@ -66,7 +75,10 @@ function createWindow() {
   });
 }
 
-app.whenReady().then(createWindow);
+app.whenReady().then(() => {
+  locale = resolveLocale(app.getLocale());
+  createWindow();
+});
 
 app.on("window-all-closed", () => {
   if (process.platform !== "darwin") app.quit();
@@ -80,9 +92,9 @@ app.on("activate", () => {
 
 ipcMain.handle("dialog:open-text-file", async () => {
   const result = await dialog.showOpenDialog(mainWindow, {
-    title: "텍스트 파일 열기",
+    title: L("openTextFileTitle"),
     properties: ["openFile"],
-    filters: TEXT_FILE_FILTERS
+    filters: textFileFilters()
   });
   if (result.canceled || result.filePaths.length === 0) return { canceled: true };
 
@@ -93,13 +105,13 @@ ipcMain.handle("dialog:open-text-file", async () => {
 
 ipcMain.handle("dialog:save-text-file", async (_event, { defaultName, content }) => {
   const result = await dialog.showSaveDialog(mainWindow, {
-    title: "다른 이름으로 저장",
+    title: L("saveAsTitle"),
     defaultPath: defaultName || "diff.txt",
     filters: [
-      { name: "텍스트 파일", extensions: ["txt"] },
-      { name: "Diff 패치 파일", extensions: ["diff", "patch"] },
-      { name: "HTML 파일", extensions: ["html"] },
-      { name: "모든 파일", extensions: ["*"] }
+      { name: L("textFiles"), extensions: ["txt"] },
+      { name: L("diffPatchFiles"), extensions: ["diff", "patch"] },
+      { name: L("htmlFiles"), extensions: ["html"] },
+      { name: L("allFiles"), extensions: ["*"] }
     ]
   });
   if (result.canceled || !result.filePath) return { canceled: true };
@@ -157,4 +169,4 @@ ipcMain.handle("clipboard:write-text", (_event, text) => {
 
 ipcMain.handle("app:get-version", () => app.getVersion());
 
-ipcMain.handle("theme:get-native-should-use-dark", () => nativeTheme.shouldUseDarkColors);
+ipcMain.handle("app:get-locale", () => locale);

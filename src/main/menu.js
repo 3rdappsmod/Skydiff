@@ -1,14 +1,17 @@
 "use strict";
 
 const { Menu, app } = require("electron");
+const { t } = require("./i18n");
 
 /**
- * 한글 네이티브 메뉴를 구성한다. 실제 동작은 renderer 로 'menu:action' 이벤트를 보내
- * 처리하고(파일 열기/내보내기/초기화 등), 앱 종료·확대/축소 등 OS 표준 동작만 role 로 위임한다.
+ * 네이티브 메뉴를 구성한다 (한국어 로캘이면 한글, 그 외에는 영어).
+ * 실제 동작은 renderer 로 'menu:action' 이벤트를 보내 처리하고(파일 열기/내보내기/초기화 등),
+ * 앱 종료·확대/축소 등 OS 표준 동작만 role 로 위임한다.
  */
-function buildMenu(mainWindow) {
+function buildMenu(mainWindow, locale) {
   const send = (action) => mainWindow && mainWindow.webContents.send("menu:action", action);
   const isMac = process.platform === "darwin";
+  const L = (key) => t(locale, key);
 
   const template = [
     ...(isMac
@@ -16,63 +19,63 @@ function buildMenu(mainWindow) {
           {
             label: app.getName(),
             submenu: [
-              { role: "about", label: "SkyDiff 정보" },
+              { role: "about", label: L("aboutSkyDiff") },
               { type: "separator" },
-              { role: "services", label: "서비스" },
+              { role: "services", label: L("services") },
               { type: "separator" },
-              { role: "hide", label: "SkyDiff 가리기" },
-              { role: "hideOthers", label: "다른 항목 가리기" },
-              { role: "unhide", label: "모두 보기" },
+              { role: "hide", label: L("hideApp") },
+              { role: "hideOthers", label: L("hideOthers") },
+              { role: "unhide", label: L("unhide") },
               { type: "separator" },
-              { role: "quit", label: "SkyDiff 종료" }
+              { role: "quit", label: L("quitApp") }
             ]
           }
         ]
       : []),
     {
-      label: "파일(&F)",
+      label: L("fileMenu"),
       submenu: [
-        { label: "새 비교", accelerator: "CmdOrCtrl+N", click: () => send("new") },
+        { label: L("newComparison"), accelerator: "CmdOrCtrl+N", click: () => send("new") },
         { type: "separator" },
-        { label: "원본 파일 열기...", accelerator: "CmdOrCtrl+O", click: () => send("open-original") },
-        { label: "수정본 파일 열기...", accelerator: "CmdOrCtrl+Shift+O", click: () => send("open-modified") },
+        { label: L("openOriginal"), accelerator: "CmdOrCtrl+O", click: () => send("open-original") },
+        { label: L("openModified"), accelerator: "CmdOrCtrl+Shift+O", click: () => send("open-modified") },
         { type: "separator" },
-        { label: "비교 결과 내보내기...", accelerator: "CmdOrCtrl+E", click: () => send("export") },
-        { label: "비교 결과 저장", accelerator: "CmdOrCtrl+S", click: () => send("save") },
+        { label: L("exportResult"), accelerator: "CmdOrCtrl+E", click: () => send("export") },
+        { label: L("saveResult"), accelerator: "CmdOrCtrl+S", click: () => send("save") },
         { type: "separator" },
-        isMac ? { role: "close", label: "창 닫기" } : { role: "quit", label: "종료" }
+        isMac ? { role: "close", label: L("closeWindow") } : { role: "quit", label: L("quit") }
       ]
     },
     {
-      label: "편집(&E)",
+      label: L("editMenu"),
       submenu: [
-        { label: "초기화", accelerator: "CmdOrCtrl+R", click: () => send("reset") },
+        { label: L("reset"), accelerator: "CmdOrCtrl+R", click: () => send("reset") },
         { type: "separator" },
-        { role: "undo", label: "실행 취소" },
-        { role: "redo", label: "다시 실행" },
+        { role: "undo", label: L("undo") },
+        { role: "redo", label: L("redo") },
         { type: "separator" },
-        { role: "cut", label: "잘라내기" },
-        { role: "copy", label: "복사" },
-        { role: "paste", label: "붙여넣기" },
-        { role: "selectAll", label: "전체 선택" }
+        { role: "cut", label: L("cut") },
+        { role: "copy", label: L("copy") },
+        { role: "paste", label: L("paste") },
+        { role: "selectAll", label: L("selectAll") }
       ]
     },
     {
-      label: "보기(&V)",
+      label: L("viewMenu"),
       submenu: [
-        { label: "나란히 보기", accelerator: "CmdOrCtrl+1", click: () => send("layout-side-by-side") },
-        { label: "합쳐 보기", accelerator: "CmdOrCtrl+2", click: () => send("layout-unified") },
+        { label: L("layoutSideBySide"), accelerator: "CmdOrCtrl+1", click: () => send("layout-side-by-side") },
+        { label: L("layoutUnified"), accelerator: "CmdOrCtrl+2", click: () => send("layout-unified") },
         { type: "separator" },
-        { role: "resetZoom", label: "실제 크기" },
-        { role: "zoomIn", label: "확대" },
-        { role: "zoomOut", label: "축소" },
+        { role: "resetZoom", label: L("actualSize") },
+        { role: "zoomIn", label: L("zoomIn") },
+        { role: "zoomOut", label: L("zoomOut") },
         { type: "separator" },
-        { role: "togglefullscreen", label: "전체 화면 전환" }
+        { role: "togglefullscreen", label: L("toggleFullScreen") }
       ]
     },
     {
-      label: "도움말(&H)",
-      submenu: [{ label: "SkyDiff 정보", click: () => send("about") }]
+      label: L("helpMenu"),
+      submenu: [{ label: L("aboutSkyDiff"), click: () => send("about") }]
     }
   ];
 
