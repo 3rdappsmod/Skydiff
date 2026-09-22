@@ -17,13 +17,13 @@
     "dist:linux": "electron-builder --linux"
   },
   "devDependencies": {
-    "electron": "^31.7.7",
-    "electron-builder": "^24.13.3",
+    "electron": "^44.4.3",
+    "electron-builder": "^26.15.3",
     "eslint": "^8.57.1"
   },
   "dependencies": {
     "diff": "^9.0.0",
-    "electron-store": "^8.2.0",
+    "electron-store": "^11.0.2",
     "electron-updater": "^6.3.9",
     "monaco-editor": "^0.56.0"
   },
