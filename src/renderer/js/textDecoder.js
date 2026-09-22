@@ -24,15 +24,15 @@
         else if (pairs && even / pairs > 0.3 && odd / pairs < 0.05) selected = "utf-16be";
         else {
           try { return { text: new TextDecoder("utf-8", { fatal: true }).decode(bytes), encoding: "UTF-8" }; }
-          catch (_error) { selected = "euc-kr"; }
+          catch { selected = "euc-kr"; }
         }
       }
     }
     if (!labels[selected]) throw new Error("invalidEncoding");
     try {
       return { text: new TextDecoder(selected, { fatal: true }).decode(bytes), encoding: labels[selected] };
-    } catch (_error) {
-      throw new Error("invalidEncoding");
+    } catch (cause) {
+      throw new Error("invalidEncoding", { cause });
     }
   }
 

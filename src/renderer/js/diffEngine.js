@@ -19,7 +19,7 @@
   function applyExclude(lines, excludePatterns) {
     const patterns = (excludePatterns || []).filter((rule) => rule.enabled && rule.pattern).map((rule) => {
       try { return new RegExp(rule.isRegex ? rule.pattern : escapeRegExp(rule.pattern)); }
-      catch (_error) { return null; }
+      catch { return null; }
     }).filter(Boolean);
     return patterns.length ? lines.filter((line) => !patterns.some((re) => re.test(line))) : lines;
   }
@@ -112,10 +112,8 @@
         removedCount = part.count;
         i++;
       }
-      let addedPart = null;
       if (i < parts.length && parts[i].added) {
-        addedPart = parts[i];
-        addedCount = addedPart.count;
+        addedCount = parts[i].count;
         i++;
       }
 

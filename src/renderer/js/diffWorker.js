@@ -1,4 +1,3 @@
-/* global importScripts */
 "use strict";
 
 importScripts("../../../vendor/diff/diff.min.js", "diffEngine.js", "textDecoder.js");

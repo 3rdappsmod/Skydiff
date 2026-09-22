@@ -46,10 +46,13 @@ Node.js **24 LTS**를 사용합니다 (`.nvmrc` 제공). Electron 44의 설치 �
 ```bash
 npm install       # 의존성 설치 (postinstall이 vendor/ 에 monaco·jsdiff 정적 자산을 복사)
 npm start         # 앱 실행
-npm run lint       # ESLint
+npm run lint       # ESLint 10 (eslint.config.js)
 npm test           # 비교·저장·UI 상태 및 Electron API 회귀 테스트
 npm run test:electron # 실제 Electron·Monaco·IPC 실행 검사 (Linux에서는 그래픽 세션 필요)
 ```
+
+ESLint 설정은 `eslint.config.js`의 flat config 형식을 사용합니다. Node·브라우저·Worker 전역과
+생성 파일 제외 경로도 이 파일에서 관리합니다. 의존성 변경 시 `package-lock.json`도 함께 커밋하세요.
 
 ## 빌드
 

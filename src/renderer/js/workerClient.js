@@ -39,7 +39,7 @@
         const timer = setTimeout(() => this.cancel("comparisonTimeout"), 30000);
         this.pending.set(id, { resolve, reject, timer });
         try { this.worker.postMessage({ id, type, payload }, transfer); }
-        catch (_error) { this.cancel("operationFailed"); }
+        catch { this.cancel("operationFailed"); }
       });
     }
   }
