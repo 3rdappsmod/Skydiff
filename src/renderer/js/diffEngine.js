@@ -42,23 +42,58 @@
     return lines.join("\n");
   }
 
+  /**
+   * 문자 단위 diff는 우연히 겹치는 한두 글자(예: "dog"/"sausage" 사이의 "g")를
+   * "공통 부분"으로 잡아 변경 구간을 잘게 쪼개버릴 수 있다. 두 변경 구간 사이에
+   * 낀 아주 짧은(<= 2자) 공통 조각은 실제로 의미 있는 공통부가 아니라 우연이므로
+   * 변경(삭제+추가)에 합쳐서, 변경 구간이 자연스러운 단위로 보이게 한다.
+   */
+  function mergeIsolatedCharMatches(parts, maxIsolatedLength = 2) {
+    const result = [];
+    for (let i = 0; i < parts.length; i++) {
+      const part = parts[i];
+      const isEdit = part.added || part.removed;
+      const prev = result[result.length - 1];
+      const next = parts[i + 1];
+      const prevIsEdit = prev && (prev.added || prev.removed);
+      const nextIsEdit = next && (next.added || next.removed);
+      if (!isEdit && part.value.length <= maxIsolatedLength && prevIsEdit && nextIsEdit) {
+        result.push({ value: part.value, removed: true });
+        result.push({ value: part.value, added: true });
+        continue;
+      }
+      result.push(part);
+    }
+    return result;
+  }
+
+  function charDiff(Diff, oldLine, newLine) {
+    return mergeIsolatedCharMatches(Diff.diffChars(oldLine, newLine, { timeout: 20 }));
+  }
+
   function subDiff(oldLine, newLine, options) {
     const { granularity, ignoreWhitespace } = options;
-    if (granularity !== "line" && (oldLine.length + newLine.length > 4000 || Date.now() > options.inlineDeadline)) {
+    if (oldLine.length + newLine.length > 4000 || Date.now() > options.inlineDeadline) {
       options.detailLimited = true;
       return null;
     }
     const Diff = global.Diff;
     switch (granularity) {
-      case "line":
-        return null; // 줄 단위: 세부 하이라이트 없음
       case "word":
+        // 단어 단위: 공백으로 토큰을 나누므로 공백 없이 이어진 문자열은 통째로 1개 토큰 교체가 된다.
         return Diff.diffWords(oldLine, newLine, { ignoreWhitespace, timeout: 20 });
       case "char":
-        return Diff.diffChars(oldLine, newLine, { timeout: 20 });
+        // 문자 단위: 항상 최소 공통 부분까지 찾아낸다.
+        return charDiff(Diff, oldLine, newLine);
       case "smart":
-      default:
-        return Diff.diffWordsWithSpace(oldLine, newLine, { timeout: 20 });
+      default: {
+        // 스마트: 문장은 단어 단위로(가독성 우선) 보여주되, 공백이 없어 단어 diff가
+        // 공통 부분을 하나도 못 찾는 경우(예: "hotdoghotdoghotdog" -> "hotdoghotdoghotsausage")엔
+        // 문자 단위로 다시 계산해 실제로 다른 부분("dog" -> "sausage")만 짚어낸다.
+        const wordDiff = Diff.diffWordsWithSpace(oldLine, newLine, { timeout: 20 });
+        const hasCommonPart = wordDiff.some((part) => !part.added && !part.removed);
+        return hasCommonPart ? wordDiff : charDiff(Diff, oldLine, newLine);
+      }
     }
   }
 
@@ -122,7 +157,7 @@
         const oldLine = originalLines[oldIdx + k];
         const newLine = modifiedLines[newIdx + k];
         const sub = subDiff(oldLine, newLine, options);
-        if (!sub && options.granularity !== "line") options.detailLimited = true;
+        if (!sub) options.detailLimited = true;
         rows.push({
           original: {
             type: "removed",

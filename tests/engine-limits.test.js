@@ -20,8 +20,32 @@ test("line-count limits fail explicitly before diffing", () => {
   assert.throws(() => engine().compute("a\n".repeat(500000), "", {}), /tooManyLines/);
 });
 
-test("smart granularity replaces a whole whitespace-free line as one token, matching diffchecker.com", () => {
+// 세 가지 비교 단위(스마트/단어/글자)의 정확한 스펙:
+// "hotdoghotdoghotdog" -> "hotdoghotdoghotsausage" (공백 없는 문자열)
+//  - 스마트: 실제로 다른 부분("dog" -> "sausage")만 짚어낸다.
+//  - 글자: 마찬가지로 실제로 다른 부분만 짚어낸다 (항상 최소 공통 부분을 찾음).
+//  - 단어: 공백 기준 토큰이라 전체가 통째로 1개 단어 교체로 표시된다.
+
+function onlyChangedText(tokens) {
+  return tokens.filter((t) => t.kind !== "plain").map((t) => t.text).join("");
+}
+
+test("smart granularity finds the actual difference even without word boundaries", () => {
   const { rows } = engine().compute("hotdoghotdoghotdog", "hotdoghotdoghotsausage", { granularity: "smart" });
+  const [{ original, modified }] = rows;
+  assert.equal(onlyChangedText(original.tokens), "dog");
+  assert.equal(onlyChangedText(modified.tokens), "sausage");
+});
+
+test("char granularity finds the actual difference even without word boundaries", () => {
+  const { rows } = engine().compute("hotdoghotdoghotdog", "hotdoghotdoghotsausage", { granularity: "char" });
+  const [{ original, modified }] = rows;
+  assert.equal(onlyChangedText(original.tokens), "dog");
+  assert.equal(onlyChangedText(modified.tokens), "sausage");
+});
+
+test("word granularity replaces the whole whitespace-free line as one token", () => {
+  const { rows } = engine().compute("hotdoghotdoghotdog", "hotdoghotdoghotsausage", { granularity: "word" });
   const [{ original, modified }] = rows;
   assert.equal(original.tokens.length, 1);
   assert.equal(original.tokens[0].kind, "removed");

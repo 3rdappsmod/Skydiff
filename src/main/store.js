@@ -13,7 +13,7 @@ const store = new Store({
       ignoreWhitespace: false,
       hideUnchanged: false,
       wordWrap: true,
-      granularity: "smart", // 'smart' | 'line' | 'word' | 'char'
+      granularity: "smart", // 'smart' | 'word' | 'char'
       syntax: "plaintext",
       excludePatterns: [], // [{ pattern: string, isRegex: boolean, enabled: boolean }]
       textTransforms: {

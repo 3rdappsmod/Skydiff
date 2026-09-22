@@ -42,7 +42,6 @@
     disableWordWrap: { ko: "줄바꿈 비활성화", en: "Disable word wrap" },
     granularity: { ko: "비교 단위", en: "Comparison granularity" },
     granularitySmart: { ko: "스마트", en: "Smart" },
-    granularityLine: { ko: "줄 단위", en: "Line" },
     granularityWord: { ko: "단어 단위", en: "Word" },
     granularityChar: { ko: "문자 단위", en: "Character" },
     syntax: { ko: "구문", en: "Syntax" },
