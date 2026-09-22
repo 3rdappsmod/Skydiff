@@ -201,8 +201,10 @@
 
       <div class="compare-bar">
         <button type="button" id="btnCompare" class="btn btn-primary" data-i18n="compare">비교하기</button>
-        <button type="button" id="btnCancelCompare" class="btn hidden" data-i18n="cancel">취소</button>
-        <span id="compareStatus" role="status" aria-live="polite"></span>
+        <div class="compare-bar-status">
+          <button type="button" id="btnCancelCompare" class="btn hidden" data-i18n="cancel">취소</button>
+          <span id="compareStatus" role="status" aria-live="polite"></span>
+        </div>
       </div>
 
       <!-- 비교 결과: 입력창과 항상 함께 표시되며 실시간으로 갱신됨 -->

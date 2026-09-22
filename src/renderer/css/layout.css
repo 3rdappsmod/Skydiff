@@ -431,12 +431,25 @@ body.theme-dark .warning-banner {
 }
 
 .compare-bar {
+  position: relative;
   flex-shrink: 0;
   display: flex;
   justify-content: center;
+  align-items: center;
   padding: 12px;
   border-top: 1px solid var(--color-border);
   background: var(--color-bg-soft);
+}
+
+/* 취소 버튼/상태 문구는 따로 떠 있게 해서 나타나도 가운데 비교하기 버튼이 안 움직이게 한다 */
+.compare-bar-status {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 
 .compare-bar .btn-primary {
@@ -709,7 +722,6 @@ body.theme-dark .warning-banner {
 }
 
 .result-pager { display: flex; align-items: center; justify-content: center; gap: 12px; padding: 6px; flex-shrink: 0; }
-.compare-bar { gap: 8px; flex-wrap: wrap; }
 #compareStatus { font-size: 12px; color: var(--color-text-muted); }
 .btn:disabled { opacity: 0.5; cursor: default; }
 .pane-header select { max-width: 150px; font-size: 12px; }

@@ -19,6 +19,8 @@
   let scheduleCompare = null;
   let revision = 0;
   let viewRequest = 0;
+  let busyShowTimer = null;
+  const BUSY_SHOW_DELAY_MS = 300; // 금방 끝나는 비교는 '비교 처리 중' 표시가 깜빡이지 않도록 지연
 
   // ---------------- 유틸 ----------------
 
@@ -238,9 +240,19 @@
   }
 
   function setBusy(busy) {
-    $("#btnCancelCompare").classList.toggle("hidden", !busy);
-    $("#compareStatus").textContent = busy ? window.SkyDiffI18n.t("comparing") : "";
     $("#diffContainer").setAttribute("aria-busy", String(busy));
+    clearTimeout(busyShowTimer);
+    if (busy) {
+      // 취소 버튼/'비교 처리 중' 문구는 일정 시간 이상 걸릴 때만 보여준다.
+      // 즉시 끝나는 비교에서 버튼이 잠깐 나타났다 사라지며 레이아웃이 흔들리는 걸 막는다.
+      busyShowTimer = setTimeout(() => {
+        $("#btnCancelCompare").classList.remove("hidden");
+        $("#compareStatus").textContent = window.SkyDiffI18n.t("comparing");
+      }, BUSY_SHOW_DELAY_MS);
+    } else {
+      $("#btnCancelCompare").classList.add("hidden");
+      $("#compareStatus").textContent = "";
+    }
   }
 
   function showOperationError(error) {
@@ -305,16 +317,16 @@
       renderDiff();
       updateStats(result.stats);
       if (result.identical) showWarning(window.SkyDiffI18n.t("textsIdentical"));
-      if (result.detailLimited) $("#compareStatus").textContent = window.SkyDiffI18n.t("detailLimited");
       return result;
     } catch (error) {
       if (currentRevision === revision) showOperationError(error);
       return null;
     } finally {
       if (currentRevision === revision) {
-        $("#btnCancelCompare").classList.add("hidden");
-        $("#diffContainer").setAttribute("aria-busy", "false");
-        if (!state.lastDiffResult || !state.lastDiffResult.detailLimited) $("#compareStatus").textContent = "";
+        setBusy(false);
+        if (state.lastDiffResult && state.lastDiffResult.detailLimited) {
+          $("#compareStatus").textContent = window.SkyDiffI18n.t("detailLimited");
+        }
       }
     }
   }
