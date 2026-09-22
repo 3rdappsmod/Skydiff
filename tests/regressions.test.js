@@ -28,6 +28,7 @@ function element() {
     get textContent() { return content; },
     set textContent(value) { content = value; this.children = []; },
     appendChild(child) { this.children.push(child); },
+    setAttribute(name, value) { this[name] = value; },
     addEventListener(name, fn) { listeners.set(name, fn); },
     async fire(name, event = {}) {
       if (listeners.has(name)) await listeners.get(name)({ target: this, ...event });
@@ -75,6 +76,7 @@ async function createApp() {
   };
   const editors = [];
   let renderedRows = [];
+  let expand;
   const timers = new Map();
   let timerId = 0;
   const api = {
@@ -87,8 +89,25 @@ async function createApp() {
     writeClipboard: async (text) => { api.clipboard = text; },
     saveTextFile: async (_name, text) => { api.exported = text; return { canceled: false }; }
   };
+  class FakeWorker {
+    constructor() {
+      this.terminated = false;
+      this.context = vm.createContext({
+        Diff, TextDecoder, Uint8Array, ArrayBuffer,
+        postMessage: (data) => { if (!this.terminated) this.onmessage({ data }); },
+        importScripts: (...files) => files.filter((file) => !file.includes("vendor")).forEach((file) => {
+          vm.runInContext(source(`src/renderer/js/${file}`), this.context);
+        })
+      });
+      vm.runInContext(source("src/renderer/js/diffWorker.js"), this.context);
+    }
+    postMessage(data) {
+      setImmediate(() => { if (!this.terminated) this.context.onmessage({ data }); });
+    }
+    terminate() { this.terminated = true; }
+  }
   const window = {
-    crypto, Diff, skydiff: api,
+    crypto, Diff, skydiff: api, Worker: FakeWorker,
     require: Object.assign((_modules, callback) => callback(), { config() {} }),
     monaco: { editor: {
       defineTheme() {}, setTheme() {}, setModelLanguage() {},
@@ -106,29 +125,30 @@ async function createApp() {
       }
     } },
     SkyDiffView: {
-      applyColors() {},
-      renderSideBySide(_container, rows) { renderedRows = rows; },
+      applyColors() {}, goToFirstChange() {},
+      renderSideBySide(_container, rows, onExpand) { renderedRows = rows; expand = onExpand; },
       renderUnified(_container, rows) { renderedRows = rows; }
     }
   };
   const context = vm.createContext({
-    window, document,
+    window, document, Diff, TextDecoder,
     setTimeout(fn, delay) { timers.set(++timerId, { fn, delay }); return timerId; },
     clearTimeout: (id) => timers.delete(id)
   });
-  for (const file of ["i18n", "diffEngine", "app"]) {
+  for (const file of ["i18n", "diffEngine", "workerClient", "app"]) {
     vm.runInContext(source(`src/renderer/js/${file}.js`), context);
   }
   await boot();
   return {
-    get, editors, api, data, engine: window.SkyDiffEngine,
+    get, editors, api, data, engine: context.SkyDiffEngine,
     rows: () => renderedRows,
+    expand: (row) => expand(row),
     input(a, b) { editors[0].setValue(a); editors[1].setValue(b); },
     async click(id) { await get(id).fire("click"); },
     async toggle(id, checked) { get(id).checked = checked; await get(id).fire("change"); },
-    flushEditing() {
+    async flushEditing() {
       for (const [id, timer] of timers) {
-        if (timer.delay === 350) { timers.delete(id); timer.fn(); }
+        if (timer.delay === 350) { timers.delete(id); await timer.fn(); }
       }
     }
   };
@@ -137,7 +157,7 @@ async function createApp() {
 test("initial typing waits for Compare; whitespace-only edits are valid", async () => {
   const app = await createApp();
   app.input(" ", "  ");
-  app.flushEditing();
+  await app.flushEditing();
   assert.equal(app.rows().length, 0);
   await app.click("btnCompare");
   assert.equal(app.get("statAddedCount").textContent, "1 addition(s)");
@@ -151,12 +171,12 @@ test("clearing both editors clears results and live comparison resumes", async (
   app.input("old", "new");
   await app.click("btnCompare");
   app.input("", "");
-  app.flushEditing();
+  await app.flushEditing();
   assert.equal(app.get("statAddedCount").textContent, "0 addition(s)");
   assert.equal(app.get("diffContainer").children.length, 1);
   assert.equal(app.get("warningBanner").classList.contains("hidden"), true);
   app.input("same", "same");
-  app.flushEditing();
+  await app.flushEditing();
   assert.equal(app.get("warningBanner").textContent, "The two texts are identical.");
 });
 
@@ -233,7 +253,7 @@ test("re-enabling live edits refreshes a previously compared document", async ()
   await app.click("btnCompare");
   await app.toggle("liveEditToggle", false);
   app.input("old", "new");
-  app.flushEditing();
+  await app.flushEditing();
   await app.toggle("liveEditToggle", true);
   assert.equal(app.get("statAddedCount").textContent, "1 addition(s)");
 });
@@ -255,4 +275,67 @@ test("excluded lines and transformations are reflected in exported patches", asy
   await app.click("btnExport");
   assert.equal(Diff.applyPatch("a\nb", app.api.exported), "a\nc");
   assert.doesNotMatch(app.api.exported, /timestamp:/);
+});
+
+test("large results are paged and first-change navigation crosses pages", async () => {
+  const app = await createApp();
+  const text = Array.from({ length: 10000 }, (_, i) => `line ${i}`).join("\n") + "\n";
+  app.input(text, text + "extra\n");
+  await app.click("btnCompare");
+  assert.equal(app.rows().length, 200);
+  assert.equal(app.get("pageLabel").textContent, "Page 1 of 51");
+  await app.click("btnNextPage");
+  assert.equal(app.rows()[0].original.lineNum, 201);
+  await app.click("btnFirstChange");
+  assert.equal(app.get("pageLabel").textContent, "Page 51 of 51");
+  assert.equal(app.rows()[0].modified.tokens[0].text, "extra");
+});
+
+test("a reset cancels an in-flight comparison and a later comparison still works", async () => {
+  const app = await createApp();
+  app.input("old", "new");
+  const pending = app.click("btnCompare");
+  await app.click("btnReset");
+  await pending;
+  assert.equal(app.get("statAddedCount").textContent, "0 addition(s)");
+  app.input("a", "b");
+  await app.click("btnCompare");
+  assert.equal(app.get("statAddedCount").textContent, "1 addition(s)");
+});
+
+test("editing during a pending export prevents saving an obsolete patch", async () => {
+  const app = await createApp();
+  app.input("old", "new");
+  const pending = app.click("btnExport");
+  app.input("latest", "latest");
+  await pending;
+  assert.equal(app.api.exported, undefined);
+  await app.click("btnCompare");
+  assert.equal(app.get("statAddedCount").textContent, "0 addition(s)");
+});
+
+test("long previews are bounded while the exported patch retains the complete text", async () => {
+  const app = await createApp();
+  const left = "a".repeat(100000), right = "b".repeat(100000);
+  app.input(left, right);
+  await app.click("btnCompare");
+  assert.equal(app.rows()[0].original.truncated, true);
+  assert.equal(app.rows()[0].original.tokens[0].text.length, 2000);
+  await app.click("btnExport");
+  assert.equal(Diff.applyPatch(left, app.api.exported), right);
+});
+
+
+test("collapsed rows stay in the worker and expansion is paginated without spreading huge arrays", async () => {
+  const app = await createApp();
+  const text = Array.from({ length: 100000 }, (_, i) => `line ${i}`).join("\n") + "\n";
+  app.input(text, text + "extra\n");
+  await app.toggle("hideUnchangedToggle", true);
+  await app.click("btnCompare");
+  const placeholder = app.rows().find((row) => row.type === "placeholder");
+  assert.equal(placeholder.count, 99994);
+  assert.equal(placeholder.rows, undefined);
+  await app.expand(placeholder);
+  assert.equal(app.rows().length, 200);
+  assert.equal(app.get("statAddedCount").textContent, "1 addition(s)");
 });

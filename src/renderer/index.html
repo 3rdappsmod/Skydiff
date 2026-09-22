@@ -173,6 +173,13 @@
         <div class="input-pane">
           <div class="pane-header">
             <span data-i18n="original">원본</span>
+            <select id="originalEncoding" data-i18n-title="fileEncoding" title="파일 인코딩" aria-label="Original file encoding">
+              <option value="auto" data-i18n="autoEncoding">자동 감지</option>
+              <option value="utf-8">UTF-8</option>
+              <option value="cp949">CP949</option>
+              <option value="utf-16le">UTF-16 LE</option>
+              <option value="utf-16be">UTF-16 BE</option>
+            </select>
             <button type="button" class="link-btn" id="btnOpenOriginal" data-i18n="openFile">파일 열기</button>
           </div>
           <div id="originalEditor" class="monaco-host draggable"></div>
@@ -180,6 +187,13 @@
         <div class="input-pane">
           <div class="pane-header">
             <span data-i18n="modified">수정본</span>
+            <select id="modifiedEncoding" data-i18n-title="fileEncoding" title="파일 인코딩" aria-label="Modified file encoding">
+              <option value="auto" data-i18n="autoEncoding">자동 감지</option>
+              <option value="utf-8">UTF-8</option>
+              <option value="cp949">CP949</option>
+              <option value="utf-16le">UTF-16 LE</option>
+              <option value="utf-16be">UTF-16 BE</option>
+            </select>
             <button type="button" class="link-btn" id="btnOpenModified" data-i18n="openFile">파일 열기</button>
           </div>
           <div id="modifiedEditor" class="monaco-host draggable"></div>
@@ -188,6 +202,8 @@
 
       <div class="compare-bar">
         <button type="button" id="btnCompare" class="btn btn-primary" data-i18n="compare">비교하기</button>
+        <button type="button" id="btnCancelCompare" class="btn hidden" data-i18n="cancel">취소</button>
+        <span id="compareStatus" role="status" aria-live="polite"></span>
       </div>
 
       <!-- 비교 결과: 입력창과 항상 함께 표시되며 실시간으로 갱신됨 -->
@@ -202,6 +218,11 @@
             <span id="statAddedCount">0</span>
             <button type="button" class="link-btn" id="btnCopyModified" data-i18n="copy">복사</button>
           </div>
+        </div>
+        <div id="resultPager" class="result-pager hidden">
+          <button type="button" id="btnPrevPage" class="btn" data-i18n="previousPage">이전</button>
+          <span id="pageLabel" aria-live="polite"></span>
+          <button type="button" id="btnNextPage" class="btn" data-i18n="nextPage">다음</button>
         </div>
         <div id="diffContainer" class="diff-container"></div>
       </div>
@@ -239,10 +260,9 @@
 
 <div id="toast" class="toast hidden"></div>
 
-<script src="../../vendor/diff/diff.min.js"></script>
 <script src="../../vendor/monaco/vs/loader.js"></script>
 <script src="js/i18n.js"></script>
-<script src="js/diffEngine.js"></script>
+<script src="js/workerClient.js"></script>
 <script src="js/diffView.js"></script>
 <script src="js/app.js"></script>
 </body>

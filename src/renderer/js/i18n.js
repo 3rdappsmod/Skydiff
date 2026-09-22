@@ -6,6 +6,23 @@
  */
 (function (global) {
   const STRINGS = {
+    autoEncoding: { ko: "자동 감지", en: "Auto-detect" },
+    fileEncoding: { ko: "파일 인코딩 (열기·드롭 전에 선택)", en: "File encoding (select before opening or dropping)" },
+    fileEncodingLoaded: { ko: "{encoding} 파일을 열었습니다.", en: "Opened as {encoding}." },
+    invalidEncoding: { ko: "이 인코딩으로 읽을 수 없습니다. 인코딩을 직접 선택한 뒤 다시 열어주세요.", en: "Cannot decode this file. Select its encoding and reopen it." },
+    fileTooLarge: { ko: "파일은 50 MiB까지 열 수 있습니다.", en: "Files up to 50 MiB are supported." },
+    textTooLarge: { ko: "양쪽 텍스트 합계는 2천만 문자까지 비교할 수 있습니다.", en: "Comparisons support up to 20 million characters in total." },
+    tooManyLines: { ko: "양쪽 합계 50만 행까지 비교할 수 있습니다.", en: "Comparisons support up to 500,000 input lines in total." },
+    comparing: { ko: "비교 처리 중…", en: "Processing comparison…" },
+    comparisonTimeout: { ko: "비교 시간이 초과됐습니다. 비교 범위를 줄여 다시 시도해주세요.", en: "Comparison timed out. Try a smaller selection." },
+    operationCanceled: { ko: "비교를 취소했습니다.", en: "Comparison canceled." },
+    operationFailed: { ko: "처리하지 못했습니다. 다시 시도해주세요.", en: "Operation failed. Please try again." },
+    needsComparison: { ko: "입력이 변경됐습니다. 비교하기를 눌러주세요.", en: "Inputs changed. Run a comparison." },
+    detailLimited: { ko: "길거나 복잡한 행은 행 단위로 강조했습니다.", en: "Long or complex lines use line-level highlighting." },
+    truncatedLine: { ko: " … (긴 행 미리보기 생략 — 전체 내용은 입력창·내보내기에서 확인)", en: " … (long line preview shortened; full text is in the editor/export)" },
+    previousPage: { ko: "이전", en: "Previous" },
+    nextPage: { ko: "다음", en: "Next" },
+    pageLabel: { ko: "{n} / {total} 페이지", en: "Page {n} of {total}" },
     toggleSidebar: { ko: "사이드바 접기/펼치기", en: "Toggle sidebar" },
     untitledDiff: { ko: "제목 없는 비교", en: "Untitled diff" },
 

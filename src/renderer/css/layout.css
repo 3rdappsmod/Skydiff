@@ -708,3 +708,9 @@ body.theme-dark .warning-banner {
 .toast.show {
   opacity: 1;
 }
+
+.result-pager { display: flex; align-items: center; justify-content: center; gap: 12px; padding: 6px; flex-shrink: 0; }
+.compare-bar { gap: 8px; flex-wrap: wrap; }
+#compareStatus { font-size: 12px; color: var(--color-text-muted); }
+.btn:disabled { opacity: 0.5; cursor: default; }
+.pane-header select { max-width: 150px; font-size: 12px; }

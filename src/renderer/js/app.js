@@ -13,6 +13,12 @@
   let originalEditor = null;
   let modifiedEditor = null;
   let toastTimer = null;
+  const comparisonWorker = new window.SkyDiffWorkerClient();
+  const fileLoads = new Map();
+  const fileDecoders = new Map();
+  let scheduleCompare = null;
+  let revision = 0;
+  let viewRequest = 0;
 
   // ---------------- 유틸 ----------------
 
@@ -22,10 +28,12 @@
 
   function debounce(fn, wait) {
     let t = null;
-    return (...args) => {
+    const scheduled = (...args) => {
       clearTimeout(t);
       t = setTimeout(() => fn(...args), wait);
     };
+    scheduled.cancel = () => clearTimeout(t);
+    return scheduled;
   }
 
   function toast(message) {
@@ -182,11 +190,18 @@
       // '비교하기'를 한 번도 누르기 전에는 자동으로 결과를 보여주지 않는다.
       // 실시간 편집은 이미 비교한 이후에만, 계속 입력하는 동안 결과를 최신 상태로 갱신하는 용도다.
       if (!state.compared || !state.settings.liveEdit) return;
-      runCompare({ manual: false });
+      return runCompare({ manual: false });
     }, 350);
 
-    originalEditor.onDidChangeModelContent(onChange);
-    modifiedEditor.onDidChangeModelContent(onChange);
+    scheduleCompare = onChange;
+    for (const editor of [originalEditor, modifiedEditor]) {
+      editor.onDidChangeModelContent(() => {
+        if (fileDecoders.has(editor)) fileDecoders.get(editor).cancel();
+        fileLoads.set(editor, (fileLoads.get(editor) || 0) + 1);
+        invalidateComparison();
+        onChange();
+      });
+    }
   }
 
   // ---------------- 비교 실행/렌더 ----------------
@@ -204,10 +219,12 @@
   function renderDiff() {
     if (!state.lastDiffResult) return;
     const container = $("#diffContainer");
-    const onExpand = (placeholderRow) => {
-      state.lastDiffResult.rows = window.SkyDiffView.expandPlaceholderInRows(state.lastDiffResult.rows, placeholderRow);
-      renderDiff();
-    };
+    const onExpand = (placeholderRow) => changePage("expand", { index: placeholderRow.index });
+    const result = state.lastDiffResult;
+    $("#resultPager").classList.toggle("hidden", result.pages <= 1);
+    $("#pageLabel").textContent = window.SkyDiffI18n.t("pageLabel", { n: result.page + 1, total: result.pages });
+    $("#btnPrevPage").disabled = result.page === 0;
+    $("#btnNextPage").disabled = result.page + 1 >= result.pages;
     if (state.settings.layout === "unified") {
       window.SkyDiffView.renderUnified(container, state.lastDiffResult.rows, onExpand);
     } else {
@@ -220,29 +237,77 @@
     $("#statAddedCount").textContent = window.SkyDiffI18n.t("addedCount", { n: stats.added });
   }
 
-  // 입력창은 항상 보이며, 비교 결과는 그 아래에 실시간으로 갱신된다 (화면 전환 없음).
-  function runCompare({ manual } = {}) {
-    const { original, modified } = getEditorValues();
+  function setBusy(busy) {
+    $("#btnCancelCompare").classList.toggle("hidden", !busy);
+    $("#compareStatus").textContent = busy ? window.SkyDiffI18n.t("comparing") : "";
+    $("#diffContainer").setAttribute("aria-busy", String(busy));
+  }
 
+  function showOperationError(error) {
+    if (error.message === "operationCanceled") return;
+    const key = ["comparisonTimeout", "textTooLarge", "tooManyLines", "invalidEncoding", "fileTooLarge"].find((name) => error.message.includes(name));
+    showWarning(window.SkyDiffI18n.t(key || "operationFailed"));
+  }
+
+  function invalidateComparison() {
+    if (scheduleCompare) scheduleCompare.cancel();
+    revision++;
+    viewRequest++;
+    comparisonWorker.cancel();
+    state.lastDiffResult = null;
+    setBusy(false);
+    hideWarning();
+    $("#resultPager").classList.add("hidden");
+    updateStats({ added: 0, removed: 0 });
+    showDiffPlaceholder(window.SkyDiffI18n.t(state.compared ? "needsComparison" : "emptyStatePlaceholder"));
+  }
+
+  async function changePage(type, payload = {}) {
+    if (!state.lastDiffResult) return;
+    const currentRevision = revision;
+    const request = ++viewRequest;
+    try {
+      const result = await comparisonWorker.request(type, payload);
+      if (currentRevision !== revision || request !== viewRequest) return;
+      state.lastDiffResult = result;
+      renderDiff();
+      $("#diffContainer").scrollTop = 0;
+      if (type === "first") window.SkyDiffView.goToFirstChange($("#diffContainer"));
+    } catch (error) {
+      if (currentRevision === revision) showOperationError(error);
+    }
+  }
+
+  async function runCompare({ manual } = {}) {
+    invalidateComparison();
+    const currentRevision = revision;
+    const { original, modified } = getEditorValues();
     if (original === "" && modified === "") {
-      state.lastDiffResult = null;
-      hideWarning();
-      updateStats({ added: 0, removed: 0 });
       showDiffPlaceholder(window.SkyDiffI18n.t("emptyStatePlaceholder"));
       if (manual) showWarning(window.SkyDiffI18n.t("enterTextToCompare"));
-      return;
+      return null;
     }
-
-    hideWarning();
-    const options = buildOptionsFromSettings();
-    const result = window.SkyDiffEngine.compute(original, modified, options);
-    state.lastDiffResult = result;
     state.compared = true;
-
-    renderDiff();
-    updateStats(result.stats);
-
-    if (result.identical) showWarning(window.SkyDiffI18n.t("textsIdentical"));
+    setBusy(true);
+    try {
+      const result = await comparisonWorker.request("compare", { original, modified, options: buildOptionsFromSettings() });
+      if (currentRevision !== revision) return null;
+      state.lastDiffResult = result;
+      renderDiff();
+      updateStats(result.stats);
+      if (result.identical) showWarning(window.SkyDiffI18n.t("textsIdentical"));
+      if (result.detailLimited) $("#compareStatus").textContent = window.SkyDiffI18n.t("detailLimited");
+      return result;
+    } catch (error) {
+      if (currentRevision === revision) showOperationError(error);
+      return null;
+    } finally {
+      if (currentRevision === revision) {
+        $("#btnCancelCompare").classList.add("hidden");
+        $("#diffContainer").setAttribute("aria-busy", "false");
+        if (!state.lastDiffResult || !state.lastDiffResult.detailLimited) $("#compareStatus").textContent = "";
+      }
+    }
   }
 
   function resetAll() {
@@ -260,10 +325,39 @@
 
   // ---------------- 파일 열기 / 드래그앤드롭 ----------------
 
+  function selectedEncoding(editor) {
+    return $(editor === originalEditor ? "#originalEncoding" : "#modifiedEncoding").value || "auto";
+  }
+
+  async function importBytes(editor, bytes, version, encoding) {
+    if (fileLoads.get(editor) !== version) return;
+    if (fileDecoders.has(editor)) fileDecoders.get(editor).cancel();
+    const decoder = new window.SkyDiffWorkerClient();
+    fileDecoders.set(editor, decoder);
+    try {
+      const buffer = bytes instanceof ArrayBuffer ? bytes : new Uint8Array(bytes).buffer;
+      const decoded = await decoder.request("decode", { bytes: buffer, encoding }, [buffer]);
+      if (fileLoads.get(editor) !== version) return;
+      editor.setValue(decoded.text);
+      toast(window.SkyDiffI18n.t("fileEncodingLoaded", { encoding: decoded.encoding }));
+    } catch (error) {
+      if (fileLoads.get(editor) === version) showOperationError(error);
+    } finally {
+      decoder.cancel();
+      if (fileDecoders.get(editor) === decoder) fileDecoders.delete(editor);
+    }
+  }
+
   async function openFileInto(targetEditor) {
-    const result = await window.skydiff.openTextFile();
-    if (result.canceled) return;
-    targetEditor.setValue(result.content);
+    const version = (fileLoads.get(targetEditor) || 0) + 1;
+    fileLoads.set(targetEditor, version);
+    const encoding = selectedEncoding(targetEditor);
+    try {
+      const result = await window.skydiff.openTextFile();
+      if (!result.canceled && fileLoads.get(targetEditor) === version) {
+        await importBytes(targetEditor, result.bytes, version, encoding);
+      }
+    } catch (error) { showOperationError(error); }
   }
 
   function wireDragAndDrop(hostEl, targetEditor) {
@@ -277,8 +371,13 @@
       hostEl.classList.remove("drag-hover");
       const file = e.dataTransfer.files && e.dataTransfer.files[0];
       if (!file) return;
-      const text = await file.text();
-      targetEditor.setValue(text);
+      const version = (fileLoads.get(targetEditor) || 0) + 1;
+      fileLoads.set(targetEditor, version);
+      const encoding = selectedEncoding(targetEditor);
+      try {
+        if (file.size > 50 * 1024 * 1024) throw new Error("fileTooLarge");
+        await importBytes(targetEditor, await file.arrayBuffer(), version, encoding);
+      } catch (error) { showOperationError(error); }
     });
   }
 
@@ -297,7 +396,7 @@
       enabledCb.checked = !!rule.enabled;
       enabledCb.addEventListener("change", () => {
         state.settings.excludePatterns[idx].enabled = enabledCb.checked;
-        onProcessingOptionChanged();
+        return onProcessingOptionChanged();
       });
 
       const input = document.createElement("input");
@@ -306,7 +405,7 @@
       input.value = rule.pattern || "";
       input.addEventListener("input", () => {
         state.settings.excludePatterns[idx].pattern = input.value;
-        onProcessingOptionChanged();
+        return onProcessingOptionChanged();
       });
 
       const regexLabel = document.createElement("label");
@@ -315,7 +414,7 @@
       regexCb.checked = !!rule.isRegex;
       regexCb.addEventListener("change", () => {
         state.settings.excludePatterns[idx].isRegex = regexCb.checked;
-        onProcessingOptionChanged();
+        return onProcessingOptionChanged();
       });
       regexLabel.appendChild(regexCb);
       regexLabel.appendChild(document.createTextNode(window.SkyDiffI18n.t("regex")));
@@ -328,7 +427,7 @@
       delBtn.addEventListener("click", () => {
         state.settings.excludePatterns.splice(idx, 1);
         renderExcludeList();
-        onProcessingOptionChanged();
+        return onProcessingOptionChanged();
       });
 
       row.appendChild(enabledCb);
@@ -341,7 +440,7 @@
 
   function onProcessingOptionChanged() {
     persistSettings();
-    if (state.compared) runCompare({ manual: false });
+    if (state.compared) return runCompare({ manual: false });
   }
 
   // ---------------- 저장된 비교 결과 ----------------
@@ -397,7 +496,7 @@
     });
   }
 
-  function loadComparison(item) {
+  async function loadComparison(item) {
     state.currentComparisonId = item.id;
     state.title = item.title || window.SkyDiffI18n.t("untitledDiff");
     state.description = item.description || "";
@@ -408,7 +507,7 @@
       applySettingsToUI();
       setLanguage(state.settings.syntax);
     }
-    runCompare({ manual: true });
+    await runCompare({ manual: true });
   }
 
   async function saveCurrentComparison() {
@@ -434,36 +533,42 @@
 
   // ---------------- 내보내기 / 공유 / 복사 ----------------
 
-  async function exportDiff() {
-    const { original, modified } = getEditorValues();
-    if (original === "" && modified === "") {
-      toast(window.SkyDiffI18n.t("nothingToExport"));
-      return;
+  async function preparePatch() {
+    const result = await runCompare({ manual: true });
+    if (!result) return null;
+    const currentRevision = revision;
+    setBusy(true);
+    try {
+      const patch = await comparisonWorker.request("patch", {
+        originalName: window.SkyDiffI18n.t("original"), modifiedName: window.SkyDiffI18n.t("modified")
+      });
+      return currentRevision === revision ? { patch, stats: result.stats, title: state.title } : null;
+    } catch (error) {
+      if (currentRevision === revision) showOperationError(error);
+      return null;
+    } finally {
+      if (currentRevision === revision) setBusy(false);
     }
-    runCompare({ manual: true });
-    const patch = patchForCurrentResult();
-    const result = await window.skydiff.saveTextFile((state.title || "diff") + ".diff", patch);
-    if (!result.canceled) toast(window.SkyDiffI18n.t("exportComplete"));
   }
 
-  function patchForCurrentResult() {
-    const result = state.lastDiffResult;
-    return window.SkyDiffEngine.toUnifiedPatch(
-      result.originalText, result.modifiedText,
-      window.SkyDiffI18n.t("original"), window.SkyDiffI18n.t("modified"),
-      { ignoreWhitespace: !!state.settings.ignoreWhitespace }
-    );
+  async function exportDiff() {
+    const prepared = await preparePatch();
+    if (!prepared) return;
+    try {
+      const result = await window.skydiff.saveTextFile((prepared.title || "diff") + ".diff", prepared.patch);
+      if (!result.canceled) toast(window.SkyDiffI18n.t("exportComplete"));
+    } catch (error) { showOperationError(error); }
   }
 
   async function shareDiff() {
-    runCompare({ manual: true });
-    if (!state.lastDiffResult) return;
-    const { stats } = state.lastDiffResult;
-    const patch = patchForCurrentResult();
+    const prepared = await preparePatch();
+    if (!prepared) return;
+    const { stats, patch, title } = prepared;
     const statsLine = `(${window.SkyDiffI18n.t("deletedCount", { n: stats.removed })}, ${window.SkyDiffI18n.t("addedCount", { n: stats.added })})`;
-    const summary = `${state.title} ${statsLine}\n\n${patch}`;
-    await window.skydiff.writeClipboard(summary);
-    toast(window.SkyDiffI18n.t("copiedToClipboard"));
+    try {
+      await window.skydiff.writeClipboard(`${title} ${statsLine}\n\n${patch}`);
+      toast(window.SkyDiffI18n.t("copiedToClipboard"));
+    } catch (error) { showOperationError(error); }
   }
 
   // ---------------- 이벤트 바인딩 ----------------
@@ -515,8 +620,12 @@
       toast(window.SkyDiffI18n.t("modifiedCopied"));
     });
 
-    $("#btnFirstChange").addEventListener("click", () => {
-      window.SkyDiffView.goToFirstChange($("#diffContainer"));
+    $("#btnFirstChange").addEventListener("click", () => changePage("first"));
+    $("#btnPrevPage").addEventListener("click", () => changePage("page", { index: state.lastDiffResult.page - 1 }));
+    $("#btnNextPage").addEventListener("click", () => changePage("page", { index: state.lastDiffResult.page + 1 }));
+    $("#btnCancelCompare").addEventListener("click", () => {
+      invalidateComparison();
+      showDiffPlaceholder(window.SkyDiffI18n.t("operationCanceled"));
     });
 
     // 표시 섹션
@@ -532,16 +641,16 @@
     $("#liveEditToggle").addEventListener("change", (e) => {
       state.settings.liveEdit = e.target.checked;
       persistSettings();
-      if (state.compared && state.settings.liveEdit) runCompare({ manual: false });
+      if (state.compared && state.settings.liveEdit) return runCompare({ manual: false });
     });
 
     $("#ignoreWhitespaceToggle").addEventListener("change", (e) => {
       state.settings.ignoreWhitespace = e.target.checked;
-      onProcessingOptionChanged();
+      return onProcessingOptionChanged();
     });
     $("#hideUnchangedToggle").addEventListener("change", (e) => {
       state.settings.hideUnchanged = e.target.checked;
-      onProcessingOptionChanged();
+      return onProcessingOptionChanged();
     });
     $("#wordWrapToggle").addEventListener("change", (e) => {
       // 체크됨 = 줄바꿈 비활성화
@@ -555,7 +664,7 @@
 
     $("#granularitySelect").addEventListener("change", (e) => {
       state.settings.granularity = e.target.value;
-      onProcessingOptionChanged();
+      return onProcessingOptionChanged();
     });
     $("#syntaxSelect").addEventListener("change", (e) => {
       state.settings.syntax = e.target.value;
@@ -594,19 +703,19 @@
 
     $("#tfTrim").addEventListener("change", (e) => {
       state.settings.textTransforms.trimLines = e.target.checked;
-      onProcessingOptionChanged();
+      return onProcessingOptionChanged();
     });
     $("#tfIgnoreCase").addEventListener("change", (e) => {
       state.settings.textTransforms.ignoreCase = e.target.checked;
-      onProcessingOptionChanged();
+      return onProcessingOptionChanged();
     });
     $("#tfRemoveEmpty").addEventListener("change", (e) => {
       state.settings.textTransforms.removeEmptyLines = e.target.checked;
-      onProcessingOptionChanged();
+      return onProcessingOptionChanged();
     });
     $("#tfSort").addEventListener("change", (e) => {
       state.settings.textTransforms.sortLines = e.target.checked;
-      onProcessingOptionChanged();
+      return onProcessingOptionChanged();
     });
 
     $("#btnAboutGithub").addEventListener("click", () => {
@@ -614,8 +723,8 @@
       toast(window.SkyDiffI18n.t("githubUrlCopied"));
     });
 
-    wireDragAndDrop($("#originalEditor"), { setValue: (v) => originalEditor.setValue(v) });
-    wireDragAndDrop($("#modifiedEditor"), { setValue: (v) => modifiedEditor.setValue(v) });
+    wireDragAndDrop($("#originalEditor"), originalEditor);
+    wireDragAndDrop($("#modifiedEditor"), modifiedEditor);
 
     window.skydiff.onMenuAction(handleMenuAction);
     window.skydiff.onUpdateStatus((payload) => {

@@ -99,8 +99,15 @@ ipcMain.handle("dialog:open-text-file", async () => {
   if (result.canceled || result.filePaths.length === 0) return { canceled: true };
 
   const filePath = result.filePaths[0];
-  const content = fs.readFileSync(filePath, "utf-8");
-  return { canceled: false, filePath, fileName: path.basename(filePath), content };
+  const file = await fs.promises.open(filePath, "r");
+  try {
+    if ((await file.stat()).size > 50 * 1024 * 1024) throw new Error("fileTooLarge");
+    const bytes = await file.readFile();
+    if (bytes.length > 50 * 1024 * 1024) throw new Error("fileTooLarge");
+    return { canceled: false, fileName: path.basename(filePath), bytes };
+  } finally {
+    await file.close();
+  }
 });
 
 ipcMain.handle("dialog:save-text-file", async (_event, { defaultName, content }) => {
@@ -116,7 +123,7 @@ ipcMain.handle("dialog:save-text-file", async (_event, { defaultName, content })
   });
   if (result.canceled || !result.filePath) return { canceled: true };
 
-  fs.writeFileSync(result.filePath, content, "utf-8");
+  await fs.promises.writeFile(result.filePath, content, "utf-8");
   return { canceled: false, filePath: result.filePath };
 });
 

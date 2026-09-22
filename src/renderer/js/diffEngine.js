@@ -16,21 +16,12 @@
     return str.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
   }
 
-  function lineMatchesExclude(line, excludePatterns) {
-    return excludePatterns.some((rule) => {
-      if (!rule.enabled || !rule.pattern) return false;
-      try {
-        const re = rule.isRegex ? new RegExp(rule.pattern) : new RegExp(escapeRegExp(rule.pattern));
-        return re.test(line);
-      } catch (err) {
-        return false; // 잘못된 정규식은 무시
-      }
-    });
-  }
-
   function applyExclude(lines, excludePatterns) {
-    if (!excludePatterns || excludePatterns.length === 0) return lines;
-    return lines.filter((line) => !lineMatchesExclude(line, excludePatterns));
+    const patterns = (excludePatterns || []).filter((rule) => rule.enabled && rule.pattern).map((rule) => {
+      try { return new RegExp(rule.isRegex ? rule.pattern : escapeRegExp(rule.pattern)); }
+      catch (_error) { return null; }
+    }).filter(Boolean);
+    return patterns.length ? lines.filter((line) => !patterns.some((re) => re.test(line))) : lines;
   }
 
   function applyTransforms(lines, transforms) {
@@ -51,18 +42,23 @@
     return lines.join("\n");
   }
 
-  function subDiff(oldLine, newLine, granularity, ignoreWhitespace) {
+  function subDiff(oldLine, newLine, options) {
+    const { granularity, ignoreWhitespace } = options;
+    if (granularity !== "line" && (oldLine.length + newLine.length > 4000 || Date.now() > options.inlineDeadline)) {
+      options.detailLimited = true;
+      return null;
+    }
     const Diff = global.Diff;
     switch (granularity) {
       case "line":
         return null; // 줄 단위: 세부 하이라이트 없음
       case "word":
-        return Diff.diffWords(oldLine, newLine, { ignoreWhitespace });
+        return Diff.diffWords(oldLine, newLine, { ignoreWhitespace, timeout: 20 });
       case "char":
-        return Diff.diffChars(oldLine, newLine);
+        return Diff.diffChars(oldLine, newLine, { timeout: 20 });
       case "smart":
       default:
-        return Diff.diffWordsWithSpace(oldLine, newLine);
+        return Diff.diffWordsWithSpace(oldLine, newLine, { timeout: 20 });
     }
   }
 
@@ -127,7 +123,8 @@
       for (let k = 0; k < pairCount; k++) {
         const oldLine = originalLines[oldIdx + k];
         const newLine = modifiedLines[newIdx + k];
-        const sub = subDiff(oldLine, newLine, options.granularity, options.ignoreWhitespace);
+        const sub = subDiff(oldLine, newLine, options);
+        if (!sub && options.granularity !== "line") options.detailLimited = true;
         rows.push({
           original: {
             type: "removed",
@@ -203,16 +200,21 @@
   /**
    * 전체 비교 파이프라인: 전처리 -> 줄 단위 diff -> 짝짓기 -> 세부 하이라이트 -> 접기 -> 통계
    */
-  function compute(originalTextRaw, modifiedTextRaw, options) {
+  function compute(originalTextRaw, modifiedTextRaw, options = {}) {
+    options = { ...options, inlineDeadline: Date.now() + 1500, detailLimited: false };
     const originalText = preprocess(originalTextRaw, options);
     const modifiedText = preprocess(modifiedTextRaw, options);
 
     const originalLines = splitLines(originalText);
     const modifiedLines = splitLines(modifiedText);
 
+    if (originalLines.length + modifiedLines.length > 500000) throw new Error("tooManyLines");
+
     const parts = global.Diff.diffLines(originalText, modifiedText, {
-      ignoreWhitespace: !!options.ignoreWhitespace
+      ignoreWhitespace: !!options.ignoreWhitespace, timeout: 15000
     });
+
+    if (!parts) throw new Error("comparisonTimeout");
 
     let rows = buildRows(originalLines, modifiedLines, parts, options);
     rows = collapseUnchanged(rows, options.hideUnchanged);
@@ -220,7 +222,7 @@
     const stats = computeStats(rows);
     const identical = stats.added === 0 && stats.removed === 0;
 
-    return { rows, stats, identical, originalText, modifiedText };
+    return { rows, stats, identical, originalText, modifiedText, detailLimited: options.detailLimited };
   }
 
   function toUnifiedPatch(originalText, modifiedText, originalName, modifiedName, options = {}) {
@@ -228,4 +230,4 @@
   }
 
   global.SkyDiffEngine = { compute, preprocess, toUnifiedPatch };
-})(window);
+})(globalThis);

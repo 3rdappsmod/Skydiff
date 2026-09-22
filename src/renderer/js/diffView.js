@@ -34,6 +34,7 @@
     const content = el("div", "diff-line-content");
     const highlightMap = sideData.type === "removed" ? { removed: "diff-token-removed" } : { added: "diff-token-added" };
     appendTokens(content, sideData.tokens, highlightMap);
+    if (sideData.truncated) content.appendChild(document.createTextNode(global.SkyDiffI18n.t("truncatedLine")));
 
     half.appendChild(lineNum);
     half.appendChild(content);
@@ -83,6 +84,7 @@
     const content = el("div", "diff-line-content");
     const highlightMap = type === "removed" ? { removed: "diff-token-removed" } : type === "added" ? { added: "diff-token-added" } : {};
     appendTokens(content, sideData.tokens, highlightMap);
+    if (sideData.truncated) content.appendChild(document.createTextNode(global.SkyDiffI18n.t("truncatedLine")));
 
     row.appendChild(markerEl);
     row.appendChild(lineNum);
@@ -120,15 +122,6 @@
     }
   }
 
-  /** placeholder row를 펼쳐서 본래 rows를 그 자리에 다시 그려 넣는다 (재렌더링). */
-  function expandPlaceholderInRows(rows, placeholderRow) {
-    const idx = rows.indexOf(placeholderRow);
-    if (idx === -1) return rows;
-    const next = rows.slice();
-    next.splice(idx, 1, ...placeholderRow.rows);
-    return next;
-  }
-
   function goToFirstChange(container) {
     const first = container.querySelector('[data-change="1"]');
     if (first) first.scrollIntoView({ block: "center", behavior: "smooth" });
@@ -142,5 +135,5 @@
     root.style.setProperty("--color-removed-bg", removedBg);
   }
 
-  global.SkyDiffView = { renderSideBySide, renderUnified, expandPlaceholderInRows, goToFirstChange, applyColors };
+  global.SkyDiffView = { renderSideBySide, renderUnified, goToFirstChange, applyColors };
 })(window);
