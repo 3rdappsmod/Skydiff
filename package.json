@@ -14,7 +14,8 @@
     "test": "node --test",
     "dist": "electron-builder -wl",
     "dist:win": "electron-builder --win",
-    "dist:linux": "electron-builder --linux"
+    "dist:linux": "electron-builder --linux",
+    "test:electron": "electron scripts/smoke-electron.js"
   },
   "devDependencies": {
     "electron": "^44.4.3",
@@ -59,12 +60,20 @@
         "deb"
       ],
       "category": "Utility",
-      "icon": "assets/icons"
+      "icon": "assets/icons",
+      "maintainer": "3rdappsmod"
     },
     "publish": [
       {
         "provider": "github"
       }
     ]
+  },
+  "engines": {
+    "node": ">=24 <25"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/3rdappsmod/SkyDiff.git"
   }
 }

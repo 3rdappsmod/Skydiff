@@ -19,7 +19,7 @@ contextBridge.exposeInMainWorld("skydiff", {
 
   // 드래그앤드롭된 File 객체는 sandbox 렌더러에서 실제 경로를 알 수 없으므로
   // Electron 이 제공하는 webUtils 로 절대 경로를 얻는다 (내용은 렌더러의 FileReader 로 읽음).
-  getPathForFile: (file) => (webUtils ? webUtils.getPathForFile(file) : file.path),
+  getPathForFile: (file) => webUtils.getPathForFile(file),
 
   onMenuAction: (callback) => {
     const handler = (_event, action) => callback(action);

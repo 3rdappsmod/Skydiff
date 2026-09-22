@@ -39,11 +39,16 @@
 
 ## 개발
 
+Node.js **24 LTS**를 사용합니다 (`.nvmrc` 제공). Electron 44의 설치 도구는 Node 22.12 이상이 필요하며,
+이 프로젝트의 개발·CI 환경은 Node 24로 통일합니다. 시스템 Node 18에서는 의존성을 설치하지 마세요.
+
+
 ```bash
 npm install       # 의존성 설치 (postinstall이 vendor/ 에 monaco·jsdiff 정적 자산을 복사)
 npm start         # 앱 실행
 npm run lint       # ESLint
-npm test           # 비교·저장·UI 상태 회귀 테스트
+npm test           # 비교·저장·UI 상태 및 Electron API 회귀 테스트
+npm run test:electron # 실제 Electron·Monaco·IPC 실행 검사 (Linux에서는 그래픽 세션 필요)
 ```
 
 ## 빌드
@@ -66,7 +71,9 @@ GitHub Releases의 **초안**으로 업로드합니다. 양쪽 OS의 빌드 성�
 Dependabot은 매주 의존성 업데이트를 제안합니다. 자동 병합을 사용하려면 GitHub 저장소의
 auto-merge를 켜고, 기본 브랜치(`main` 또는 `master`) 보호 규칙에서 lint(회귀 테스트 포함)와 Windows/Linux 빌드를
 필수 상태 검사로 지정하세요. patch/minor만 자동 병합하며 major는 직접 검토합니다.
-현재 CI의 `--dir` 빌드는 설치본 실행을 검증하지 않습니다.
+CI는 Windows/Linux에서 실제 Electron 실행 검사와 설치 파일 빌드를 수행합니다.
+Linux CI는 Xvfb 안에서 테스트 프로세스에만 `--no-sandbox`를 사용합니다. 일반 앱 실행 옵션은 바꾸지 않습니다.
+설치 마법사 자체와 설치 후 실행은 별도의 실제 환경 검증 대상입니다.
 
 ## 비교 및 내보내기 동작
 
@@ -77,8 +84,15 @@ auto-merge를 켜고, 기본 브랜치(`main` 또는 `master`) 보호 규칙에�
 
 ## 배포 전 남은 검증
 
-- Electron 31 계열은 지원이 종료됐습니다. 지원 중인 Electron으로 업그레이드하고 양쪽 OS에서 검증해야 합니다.
-- Windows NSIS 및 Linux AppImage/deb 설치·실행, 공개 릴리스 간 업데이트를 실제 환경에서 확인해야 합니다.
+- Electron **44.4.3**, electron-builder **26.15.3**으로 업그레이드했습니다.
+  [Electron 44 변경사항](https://www.electronjs.org/docs/latest/breaking-changes#breaking-api-changes-440)에 따라
+  비동기 클립보드 쓰기를 기다리고, 제거된 `File.path` 대체 코드를 정리했습니다.
+- 기본 빌드는 Windows/Linux x64입니다. Electron 44는 32비트 Windows/Linux ARM 바이너리를 제공하지 않습니다.
+- Linux에서 회귀/API 테스트 12개, Electron 개발 실행 및 배포용 `app.asar` 실행 검사,
+  AppImage/deb 생성을 확인했습니다. 설치 마법사·시스템 설치는 수행하지 않았습니다.
+- Windows 앱 패키징은 확인했지만, 이 Linux 환경에는 Wine이 없어 NSIS 생성은 완료하지 못했습니다.
+  Windows CI에 실제 Electron 실행 검사와 NSIS 빌드를 추가했으며, Windows 실행 결과는 아직 확인하지 않았습니다.
+- SkyDiff 자체 자동 업데이트 검증은 이번 Electron 업그레이드 범위에서 제외했습니다.
 - 대용량 텍스트 비교는 UI 스레드에서 동기 실행되므로 Worker 및 렌더링 성능 개선이 필요합니다.
 
 ## 참고한 오픈소스

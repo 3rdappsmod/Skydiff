@@ -162,8 +162,8 @@ ipcMain.handle("store:delete-comparison", (_event, id) => {
 
 // ---- IPC: 기타 ----
 
-ipcMain.handle("clipboard:write-text", (_event, text) => {
-  clipboard.writeText(text);
+ipcMain.handle("clipboard:write-text", async (_event, text) => {
+  await clipboard.writeText(text);
   return true;
 });
 

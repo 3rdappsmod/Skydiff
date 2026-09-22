@@ -13,7 +13,7 @@ jobs:
       - uses: actions/checkout@v7
       - uses: actions/setup-node@v7
         with:
-          node-version: 20
+          node-version: 24
           cache: npm
       - run: npm ci
       - run: npm run lint
@@ -34,10 +34,16 @@ jobs:
       - uses: actions/checkout@v7
       - uses: actions/setup-node@v7
         with:
-          node-version: 20
+          node-version: 24
           cache: npm
       - run: npm ci
-      - name: 빌드 스모크 테스트 (설치본 미생성, 언패킹만)
-        run: npx electron-builder ${{ matrix.flag }} --dir
+      - name: Run Electron smoke test (Linux)
+        if: runner.os == 'Linux'
+        run: xvfb-run -a npm run test:electron -- --no-sandbox
+      - name: Run Electron smoke test (Windows)
+        if: runner.os == 'Windows'
+        run: npm run test:electron
+      - name: Build installers without publishing
+        run: npx electron-builder ${{ matrix.flag }} --publish never
         env:
           CSC_IDENTITY_AUTO_DISCOVERY: false
