@@ -249,11 +249,18 @@
     showWarning(window.SkyDiffI18n.t(key || "operationFailed"));
   }
 
-  function invalidateComparison() {
+  function cancelPendingWork() {
     if (scheduleCompare) scheduleCompare.cancel();
     revision++;
     viewRequest++;
     comparisonWorker.cancel();
+  }
+
+  // 텍스트가 바뀌어 지금 보이는 결과가 더 이상 유효하지 않을 때(=자동으로 다시
+  // 비교하지 않을 때)만 쓴다. 처리 옵션 변경처럼 곧바로 재비교할 때 이걸 먼저
+  // 부르면 새 결과가 나오기 전 잠깐 빈 화면/0으로 깜빡이므로 쓰지 않는다.
+  function invalidateComparison() {
+    cancelPendingWork();
     state.lastDiffResult = null;
     setBusy(false);
     hideWarning();
@@ -279,15 +286,17 @@
   }
 
   async function runCompare({ manual } = {}) {
-    invalidateComparison();
+    cancelPendingWork();
     const currentRevision = revision;
     const { original, modified } = getEditorValues();
     if (original === "" && modified === "") {
+      invalidateComparison();
       showDiffPlaceholder(window.SkyDiffI18n.t("emptyStatePlaceholder"));
       if (manual) showWarning(window.SkyDiffI18n.t("enterTextToCompare"));
       return null;
     }
     state.compared = true;
+    hideWarning();
     setBusy(true);
     try {
       const result = await comparisonWorker.request("compare", { original, modified, options: buildOptionsFromSettings() });
