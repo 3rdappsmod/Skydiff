@@ -567,7 +567,6 @@ body.theme-dark .warning-banner {
   background: var(--color-removed);
   color: #fff;
   border-radius: 2px;
-  text-decoration: line-through;
 }
 
 /* 합쳐 보기 전용 마커(+/-) */
