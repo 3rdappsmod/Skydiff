@@ -20,7 +20,7 @@
     layoutSideBySide: { ko: "나란히 보기", en: "Side by side" },
     layoutUnified: { ko: "합쳐 보기", en: "Unified" },
     liveEdit: { ko: "실시간 편집", en: "Live edit" },
-    ignoreWhitespace: { ko: "공백 변경 숨기기", en: "Hide whitespace changes" },
+    ignoreWhitespace: { ko: "줄 앞뒤 공백 무시", en: "Ignore leading/trailing whitespace" },
     hideUnchanged: { ko: "변경 없는 행 숨기기", en: "Hide unchanged lines" },
     disableWordWrap: { ko: "줄바꿈 비활성화", en: "Disable word wrap" },
     granularity: { ko: "비교 단위", en: "Comparison granularity" },

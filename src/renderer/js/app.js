@@ -31,6 +31,7 @@
   function toast(message) {
     const t = $("#toast");
     t.textContent = message;
+    t.classList.remove("hidden");
     t.classList.add("show");
     clearTimeout(toastTimer);
     toastTimer = setTimeout(() => t.classList.remove("show"), 2200);
@@ -90,7 +91,10 @@
     $("#liveEditToggle").checked = !!s.liveEdit;
     $("#ignoreWhitespaceToggle").checked = !!s.ignoreWhitespace;
     $("#hideUnchangedToggle").checked = !!s.hideUnchanged;
-    $("#wordWrapToggle").checked = !!s.wordWrap;
+    $("#wordWrapToggle").checked = !s.wordWrap;
+    const editorOptions = { wordWrap: s.wordWrap ? "on" : "off" };
+    if (originalEditor) originalEditor.updateOptions(editorOptions);
+    if (modifiedEditor) modifiedEditor.updateOptions(editorOptions);
     $("#granularitySelect").value = s.granularity;
     $("#syntaxSelect").value = s.syntax;
 
@@ -220,7 +224,11 @@
   function runCompare({ manual } = {}) {
     const { original, modified } = getEditorValues();
 
-    if (!original.trim() && !modified.trim()) {
+    if (original === "" && modified === "") {
+      state.lastDiffResult = null;
+      hideWarning();
+      updateStats({ added: 0, removed: 0 });
+      showDiffPlaceholder(window.SkyDiffI18n.t("emptyStatePlaceholder"));
       if (manual) showWarning(window.SkyDiffI18n.t("enterTextToCompare"));
       return;
     }
@@ -405,10 +413,12 @@
 
   async function saveCurrentComparison() {
     const { original, modified } = getEditorValues();
-    if (!original.trim() && !modified.trim()) {
+    if (original === "" && modified === "") {
       toast(window.SkyDiffI18n.t("nothingToSave"));
       return;
     }
+    // Reserve the ID before IPC so repeated saves update the same comparison.
+    if (!state.currentComparisonId) state.currentComparisonId = window.crypto.randomUUID();
     const payload = {
       id: state.currentComparisonId,
       title: state.title,
@@ -426,27 +436,30 @@
 
   async function exportDiff() {
     const { original, modified } = getEditorValues();
-    if (!original.trim() && !modified.trim()) {
+    if (original === "" && modified === "") {
       toast(window.SkyDiffI18n.t("nothingToExport"));
       return;
     }
-    const originalLabel = window.SkyDiffI18n.t("original");
-    const modifiedLabel = window.SkyDiffI18n.t("modified");
-    const patch = window.SkyDiffEngine.toUnifiedPatch(original, modified, originalLabel, modifiedLabel);
+    runCompare({ manual: true });
+    const patch = patchForCurrentResult();
     const result = await window.skydiff.saveTextFile((state.title || "diff") + ".diff", patch);
     if (!result.canceled) toast(window.SkyDiffI18n.t("exportComplete"));
   }
 
+  function patchForCurrentResult() {
+    const result = state.lastDiffResult;
+    return window.SkyDiffEngine.toUnifiedPatch(
+      result.originalText, result.modifiedText,
+      window.SkyDiffI18n.t("original"), window.SkyDiffI18n.t("modified"),
+      { ignoreWhitespace: !!state.settings.ignoreWhitespace }
+    );
+  }
+
   async function shareDiff() {
-    if (!state.lastDiffResult) {
-      toast(window.SkyDiffI18n.t("runCompareFirst"));
-      return;
-    }
+    runCompare({ manual: true });
+    if (!state.lastDiffResult) return;
     const { stats } = state.lastDiffResult;
-    const { original, modified } = getEditorValues();
-    const originalLabel = window.SkyDiffI18n.t("original");
-    const modifiedLabel = window.SkyDiffI18n.t("modified");
-    const patch = window.SkyDiffEngine.toUnifiedPatch(original, modified, originalLabel, modifiedLabel);
+    const patch = patchForCurrentResult();
     const statsLine = `(${window.SkyDiffI18n.t("deletedCount", { n: stats.removed })}, ${window.SkyDiffI18n.t("addedCount", { n: stats.added })})`;
     const summary = `${state.title} ${statsLine}\n\n${patch}`;
     await window.skydiff.writeClipboard(summary);
@@ -519,6 +532,7 @@
     $("#liveEditToggle").addEventListener("change", (e) => {
       state.settings.liveEdit = e.target.checked;
       persistSettings();
+      if (state.compared && state.settings.liveEdit) runCompare({ manual: false });
     });
 
     $("#ignoreWhitespaceToggle").addEventListener("change", (e) => {

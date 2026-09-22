@@ -26,6 +26,8 @@ jobs:
           node-version: 20
           cache: npm
       - run: npm ci
+      - run: npm run lint
+      - run: npm test
       - name: 빌드 및 GitHub Releases 게시
         run: npx electron-builder ${{ matrix.flag }} --publish always
         env:

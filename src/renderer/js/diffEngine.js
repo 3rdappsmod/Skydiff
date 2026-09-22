@@ -223,8 +223,8 @@
     return { rows, stats, identical, originalText, modifiedText };
   }
 
-  function toUnifiedPatch(originalText, modifiedText, originalName, modifiedName) {
-    return global.Diff.createTwoFilesPatch(originalName || "Original", modifiedName || "Modified", originalText, modifiedText);
+  function toUnifiedPatch(originalText, modifiedText, originalName, modifiedName, options = {}) {
+    return global.Diff.createTwoFilesPatch(originalName || "Original", modifiedName || "Modified", originalText, modifiedText, "", "", options);
   }
 
   global.SkyDiffEngine = { compute, preprocess, toUnifiedPatch };

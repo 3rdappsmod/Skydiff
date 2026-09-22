@@ -146,7 +146,7 @@ ipcMain.handle("store:save-comparison", (_event, comparison) => {
 
   const entry = {
     ...comparison,
-    id: crypto.randomUUID(),
+    id: comparison.id || crypto.randomUUID(),
     createdAt: now,
     updatedAt: now
   };

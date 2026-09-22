@@ -11,6 +11,7 @@
     "postinstall": "node scripts/copy-vendor.js",
     "start": "electron .",
     "lint": "eslint .",
+    "test": "node --test",
     "dist": "electron-builder -wl",
     "dist:win": "electron-builder --win",
     "dist:linux": "electron-builder --linux"
