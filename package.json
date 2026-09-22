@@ -19,7 +19,7 @@
   "devDependencies": {
     "electron": "^44.4.3",
     "electron-builder": "^26.15.3",
-    "eslint": "^8.57.1"
+    "eslint": "^10.11.0"
   },
   "dependencies": {
     "diff": "^9.0.0",
