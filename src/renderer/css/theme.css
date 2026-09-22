@@ -1,0 +1,227 @@
+:root {
+  --color-primary: #2563eb;
+  --color-primary-dark: #1d4ed8;
+  --color-primary-light: #60a5fa;
+  --color-accent: #0ea5e9;
+  --color-accent-light: #7dd3fc;
+
+  --color-bg: #ffffff;
+  --color-bg-soft: #f0f9ff;
+  --color-surface: #ffffff;
+  --color-sidebar-bg: #f0f7ff;
+  --color-header-bg: linear-gradient(135deg, #2563eb 0%, #0ea5e9 100%);
+
+  --color-border: #cfe8fb;
+  --color-border-strong: #93c5fd;
+
+  --color-text: #0f2647;
+  --color-text-muted: #5b7699;
+  --color-text-on-primary: #ffffff;
+
+  --color-added: #16a34a;
+  --color-added-bg: #dcfce7;
+  --color-removed: #dc2626;
+  --color-removed-bg: #fee2e2;
+
+  --color-danger: #dc2626;
+  --color-success: #16a34a;
+  --color-warning: #d97706;
+
+  --shadow-sm: 0 1px 2px rgba(15, 38, 71, 0.08);
+  --shadow-md: 0 4px 14px rgba(15, 38, 71, 0.12);
+
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 16px;
+
+  color-scheme: light;
+}
+
+body.theme-dark {
+  --color-bg: #0b1220;
+  --color-bg-soft: #0f1b2d;
+  --color-surface: #111c30;
+  --color-sidebar-bg: #0d1626;
+  --color-header-bg: linear-gradient(135deg, #1d4ed8 0%, #0369a1 100%);
+
+  --color-border: #1e3a5f;
+  --color-border-strong: #2c5282;
+
+  --color-text: #e6f1ff;
+  --color-text-muted: #8fa9c7;
+  --color-text-on-primary: #ffffff;
+
+  --color-added: #4ade80;
+  --color-added-bg: #0f2e1c;
+  --color-removed: #f87171;
+  --color-removed-bg: #3a1414;
+
+  color-scheme: dark;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  background: var(--color-bg-soft);
+  color: var(--color-text);
+  font-family: "Pretendard", "Apple SD Gothic Neo", "Malgun Gothic", "Segoe UI", sans-serif;
+  font-size: 14px;
+  -webkit-font-smoothing: antialiased;
+}
+
+button,
+input,
+select,
+textarea {
+  font-family: inherit;
+  font-size: inherit;
+  color: inherit;
+}
+
+.hidden {
+  display: none !important;
+}
+
+.btn {
+  appearance: none;
+  border: 1px solid var(--color-border-strong);
+  background: var(--color-surface);
+  color: var(--color-primary-dark);
+  border-radius: var(--radius-sm);
+  padding: 6px 12px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease, transform 0.05s ease;
+}
+
+.btn:hover {
+  background: var(--color-bg-soft);
+  border-color: var(--color-primary);
+}
+
+.btn:active {
+  transform: translateY(1px);
+}
+
+.btn-primary {
+  background: var(--color-header-bg);
+  color: var(--color-text-on-primary);
+  border-color: transparent;
+  box-shadow: var(--shadow-sm);
+}
+
+.btn-primary:hover {
+  filter: brightness(1.05);
+}
+
+.icon-btn {
+  appearance: none;
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--color-text-muted);
+  border-radius: var(--radius-sm);
+  width: 30px;
+  height: 30px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-size: 15px;
+}
+
+.icon-btn:hover {
+  background: var(--color-bg-soft);
+  color: var(--color-primary-dark);
+}
+
+.link-btn {
+  appearance: none;
+  border: none;
+  background: transparent;
+  color: var(--color-primary);
+  font-weight: 600;
+  font-size: 13px;
+  cursor: pointer;
+  padding: 2px 0;
+}
+
+.link-btn:hover {
+  color: var(--color-primary-dark);
+  text-decoration: underline;
+}
+
+/* switch (토글 스위치) */
+input.switch {
+  appearance: none;
+  width: 36px;
+  height: 20px;
+  border-radius: 999px;
+  background: var(--color-border-strong);
+  position: relative;
+  cursor: pointer;
+  outline: none;
+  flex-shrink: 0;
+  transition: background 0.15s ease;
+}
+
+input.switch::before {
+  content: "";
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: #fff;
+  transition: transform 0.15s ease;
+  box-shadow: var(--shadow-sm);
+}
+
+input.switch:checked {
+  background: var(--color-primary);
+}
+
+input.switch:checked::before {
+  transform: translateX(16px);
+}
+
+select,
+input[type="text"],
+input[type="search"] {
+  border: 1px solid var(--color-border-strong);
+  background: var(--color-surface);
+  color: var(--color-text);
+  border-radius: var(--radius-sm);
+  padding: 5px 8px;
+}
+
+input[type="color"] {
+  width: 36px;
+  height: 26px;
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-sm);
+  padding: 2px;
+  background: var(--color-surface);
+  cursor: pointer;
+}
+
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--color-border-strong);
+  border-radius: 999px;
+}

@@ -1,0 +1,69 @@
+{
+  "name": "skydiff",
+  "productName": "SkyDiff",
+  "version": "0.1.0",
+  "description": "하늘색 테마의 크로스플랫폼 텍스트 비교(diff) 프로그램",
+  "main": "src/main/main.js",
+  "author": "3rdappsmod",
+  "license": "MIT",
+  "private": true,
+  "scripts": {
+    "postinstall": "node scripts/copy-vendor.js",
+    "start": "electron .",
+    "lint": "eslint .",
+    "dist": "electron-builder -wl",
+    "dist:win": "electron-builder --win",
+    "dist:linux": "electron-builder --linux"
+  },
+  "devDependencies": {
+    "electron": "^31.7.7",
+    "electron-builder": "^24.13.3",
+    "eslint": "^8.57.1"
+  },
+  "dependencies": {
+    "diff": "^9.0.0",
+    "electron-store": "^8.2.0",
+    "electron-updater": "^6.3.9",
+    "monaco-editor": "^0.50.0"
+  },
+  "build": {
+    "appId": "com.skydiff.app",
+    "productName": "SkyDiff",
+    "files": [
+      "src/**/*",
+      "vendor/**/*",
+      "assets/icons/*.png",
+      "assets/icons/*.ico",
+      "package.json",
+      "!**/*.map"
+    ],
+    "directories": {
+      "output": "dist",
+      "buildResources": "assets/icons"
+    },
+    "win": {
+      "target": [
+        "nsis"
+      ],
+      "icon": "assets/icons/icon.ico"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true
+    },
+    "linux": {
+      "target": [
+        "AppImage",
+        "deb"
+      ],
+      "category": "Utility",
+      "icon": "assets/icons"
+    },
+    "publish": [
+      {
+        "provider": "github"
+      }
+    ]
+  }
+}
