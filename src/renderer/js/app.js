@@ -175,7 +175,9 @@
     modifiedEditor = monaco.editor.create(document.getElementById("modifiedEditor"), { ...commonOptions });
 
     const onChange = debounce(() => {
-      if (!state.settings.liveEdit) return;
+      // '비교하기'를 한 번도 누르기 전에는 자동으로 결과를 보여주지 않는다.
+      // 실시간 편집은 이미 비교한 이후에만, 계속 입력하는 동안 결과를 최신 상태로 갱신하는 용도다.
+      if (!state.compared || !state.settings.liveEdit) return;
       runCompare({ manual: false });
     }, 350);
 
