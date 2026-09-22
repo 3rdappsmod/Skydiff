@@ -20,13 +20,13 @@ test("line-count limits fail explicitly before diffing", () => {
   assert.throws(() => engine().compute("a\n".repeat(500000), "", {}), /tooManyLines/);
 });
 
-test("smart granularity finds the common prefix even without word boundaries", () => {
+test("smart granularity replaces a whole whitespace-free line as one token, matching diffchecker.com", () => {
   const { rows } = engine().compute("hotdoghotdoghotdog", "hotdoghotdoghotsausage", { granularity: "smart" });
   const [{ original, modified }] = rows;
-  assert.equal(original.tokens[0].kind, "plain");
-  assert.equal(original.tokens[0].text, "hotdoghotdoghot");
-  assert.equal(modified.tokens[0].kind, "plain");
-  assert.equal(modified.tokens[0].text, "hotdoghotdoghot");
-  assert.ok(original.tokens.some((t) => t.kind === "removed"));
-  assert.ok(modified.tokens.some((t) => t.kind === "added"));
+  assert.equal(original.tokens.length, 1);
+  assert.equal(original.tokens[0].kind, "removed");
+  assert.equal(original.tokens[0].text, "hotdoghotdoghotdog");
+  assert.equal(modified.tokens.length, 1);
+  assert.equal(modified.tokens[0].kind, "added");
+  assert.equal(modified.tokens[0].text, "hotdoghotdoghotsausage");
 });

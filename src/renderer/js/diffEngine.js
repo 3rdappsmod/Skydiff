@@ -57,15 +57,8 @@
       case "char":
         return Diff.diffChars(oldLine, newLine, { timeout: 20 });
       case "smart":
-      default: {
-        // 단어 경계가 있는 일반 문장은 단어 단위로(가독성 우선), 공백 없이 이어진 문자열
-        // (예: "hotdoghotdoghotdog" -> "hotdoghotdoghotsausage")은 단어 diff가 통째로
-        // 1개 토큰 교체로만 보여 공통 부분을 못 찾으므로 문자 단위로 다시 계산해 공통 부분을 살린다.
-        const wordDiff = Diff.diffWordsWithSpace(oldLine, newLine, { timeout: 20 });
-        const hasCommonPart = wordDiff.some((part) => !part.added && !part.removed);
-        if (hasCommonPart) return wordDiff;
-        return Diff.diffChars(oldLine, newLine, { timeout: 20 });
-      }
+      default:
+        return Diff.diffWordsWithSpace(oldLine, newLine, { timeout: 20 });
     }
   }
 
