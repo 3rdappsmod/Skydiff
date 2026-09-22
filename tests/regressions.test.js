@@ -39,7 +39,7 @@ function element() {
 async function createApp() {
   let data;
   vm.runInNewContext(source("src/main/store.js"), {
-    module: {}, require: () => class { constructor(options) { data = options.defaults; } }
+    module: {}, require: () => ({ default: class { constructor(options) { data = options.defaults; } } })
   });
   data = JSON.parse(JSON.stringify(data));
   const handlers = {};

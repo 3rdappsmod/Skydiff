@@ -1,6 +1,6 @@
 "use strict";
 
-const Store = require("electron-store");
+const { default: Store } = require("electron-store");
 
 const store = new Store({
   name: "skydiff-data",
