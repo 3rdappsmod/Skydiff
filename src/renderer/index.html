@@ -168,7 +168,7 @@
     <main class="main-area">
       <div id="warningBanner" class="warning-banner hidden"></div>
 
-      <!-- 입력 화면 (비교 전) -->
+      <!-- 원본/수정본 입력창: 항상 표시됨 -->
       <div id="inputView" class="input-view">
         <div class="input-pane">
           <div class="pane-header">
@@ -190,8 +190,8 @@
         <button type="button" id="btnCompare" class="btn btn-primary">비교하기</button>
       </div>
 
-      <!-- 결과 화면 (비교 후) -->
-      <div id="resultView" class="result-view hidden">
+      <!-- 비교 결과: 입력창과 항상 함께 표시되며 실시간으로 갱신됨 -->
+      <div id="resultView" class="result-view">
         <div class="result-stats">
           <div class="stat stat-removed">
             <span id="statRemovedCount">0 삭제</span>

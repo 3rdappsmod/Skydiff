@@ -157,8 +157,4 @@ ipcMain.handle("clipboard:write-text", (_event, text) => {
 
 ipcMain.handle("app:get-version", () => app.getVersion());
 
-ipcMain.handle("update:check", () => {
-  if (updater) updater.checkForUpdates();
-});
-
 ipcMain.handle("theme:get-native-should-use-dark", () => nativeTheme.shouldUseDarkColors);

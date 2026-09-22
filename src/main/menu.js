@@ -1,6 +1,6 @@
 "use strict";
 
-const { Menu, app, shell } = require("electron");
+const { Menu, app } = require("electron");
 
 /**
  * 한글 네이티브 메뉴를 구성한다. 실제 동작은 renderer 로 'menu:action' 이벤트를 보내
@@ -63,31 +63,16 @@ function buildMenu(mainWindow) {
         { label: "나란히 보기", accelerator: "CmdOrCtrl+1", click: () => send("layout-side-by-side") },
         { label: "합쳐 보기", accelerator: "CmdOrCtrl+2", click: () => send("layout-unified") },
         { type: "separator" },
-        { label: "다크 모드 전환", accelerator: "CmdOrCtrl+D", click: () => send("toggle-dark-mode") },
-        { type: "separator" },
         { role: "resetZoom", label: "실제 크기" },
         { role: "zoomIn", label: "확대" },
         { role: "zoomOut", label: "축소" },
         { type: "separator" },
-        { role: "togglefullscreen", label: "전체 화면 전환" },
-        { role: "toggleDevTools", label: "개발자 도구" }
+        { role: "togglefullscreen", label: "전체 화면 전환" }
       ]
     },
     {
       label: "도움말(&H)",
-      submenu: [
-        { label: "SkyDiff 정보", click: () => send("about") },
-        { label: "업데이트 확인", click: () => send("check-update") },
-        { type: "separator" },
-        {
-          label: "GitHub 저장소 열기",
-          click: () => shell.openExternal("https://github.com/3rdappsmod/SkyDiff")
-        },
-        {
-          label: "문제 보고",
-          click: () => shell.openExternal("https://github.com/3rdappsmod/SkyDiff/issues")
-        }
-      ]
+      submenu: [{ label: "SkyDiff 정보", click: () => send("about") }]
     }
   ];
 

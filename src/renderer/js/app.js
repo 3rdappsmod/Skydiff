@@ -64,12 +64,6 @@
     }
   }
 
-  function toggleDarkMode() {
-    state.settings.darkMode = !state.settings.darkMode;
-    applyTheme(state.settings.darkMode);
-    persistSettings();
-  }
-
   // ---------------- 설정 <-> UI ----------------
 
   function buildOptionsFromSettings() {
@@ -191,16 +185,14 @@
 
   // ---------------- 비교 실행/렌더 ----------------
 
-  function showResultView() {
-    $("#inputView").classList.add("hidden");
-    $(".compare-bar").classList.add("hidden");
-    $("#resultView").classList.remove("hidden");
-  }
-
-  function showInputView() {
-    $("#inputView").classList.remove("hidden");
-    $(".compare-bar").classList.remove("hidden");
-    $("#resultView").classList.add("hidden");
+  function showDiffPlaceholder(message) {
+    const container = $("#diffContainer");
+    container.textContent = "";
+    const p = document.createElement("p");
+    p.className = "empty-hint";
+    p.style.padding = "16px";
+    p.textContent = message;
+    container.appendChild(p);
   }
 
   function renderDiff() {
@@ -222,6 +214,7 @@
     $("#statAddedCount").textContent = stats.added + " 추가";
   }
 
+  // 입력창은 항상 보이며, 비교 결과는 그 아래에 실시간으로 갱신된다 (화면 전환 없음).
   function runCompare({ manual } = {}) {
     const { original, modified } = getEditorValues();
 
@@ -236,7 +229,6 @@
     state.lastDiffResult = result;
     state.compared = true;
 
-    showResultView();
     renderDiff();
     updateStats(result.stats);
 
@@ -252,7 +244,8 @@
     state.compared = false;
     $("#titleInput").value = state.title;
     hideWarning();
-    showInputView();
+    updateStats({ added: 0, removed: 0 });
+    showDiffPlaceholder("원본과 수정본을 입력하면 비교 결과가 여기에 표시됩니다.");
   }
 
   // ---------------- 파일 열기 / 드래그앤드롭 ----------------
@@ -650,19 +643,12 @@
         persistSettings();
         if (state.compared) renderDiff();
         break;
-      case "toggle-dark-mode":
-        toggleDarkMode();
-        break;
       case "about": {
         const version = await window.skydiff.getAppVersion();
         $("#aboutVersion").textContent = version;
         openModal("aboutModal");
         break;
       }
-      case "check-update":
-        window.skydiff.checkForUpdates();
-        toast("업데이트를 확인합니다...");
-        break;
     }
   }
 
@@ -681,6 +667,7 @@
     setLanguage(state.settings.syntax);
     wireEvents();
     refreshSavedList();
+    showDiffPlaceholder("원본과 수정본을 입력하면 비교 결과가 여기에 표시됩니다.");
   }
 
   document.addEventListener("DOMContentLoaded", boot);
