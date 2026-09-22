@@ -64,7 +64,7 @@ GitHub Releases의 **초안**으로 업로드합니다. 양쪽 OS의 빌드 성�
 태그 버전은 `package.json`의 버전과 맞춰야 하며, GitHub 원격 저장소를 연결해야 합니다.
 
 Dependabot은 매주 의존성 업데이트를 제안합니다. 자동 병합을 사용하려면 GitHub 저장소의
-auto-merge를 켜고, `main` 보호 규칙에서 lint(회귀 테스트 포함)와 Windows/Linux 빌드를
+auto-merge를 켜고, 기본 브랜치(`main` 또는 `master`) 보호 규칙에서 lint(회귀 테스트 포함)와 Windows/Linux 빌드를
 필수 상태 검사로 지정하세요. patch/minor만 자동 병합하며 major는 직접 검토합니다.
 현재 CI의 `--dir` 빌드는 설치본 실행을 검증하지 않습니다.
 
