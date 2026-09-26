@@ -6,6 +6,7 @@ const fs = require("fs");
 const crypto = require("crypto");
 
 const store = require("./store");
+const { trackWindowBounds } = require("./window-state");
 const { buildMenu } = require("./menu");
 const { setupAutoUpdater } = require("./updater");
 const { resolveLocale, t } = require("./i18n");
@@ -52,15 +53,7 @@ function createWindow() {
 
   mainWindow.loadFile(path.join(__dirname, "..", "renderer", "index.html"));
 
-  const persistBounds = () => {
-    if (!mainWindow) return;
-    const maximized = mainWindow.isMaximized();
-    const b = mainWindow.getBounds();
-    store.set("windowBounds", { ...b, maximized });
-  };
-  mainWindow.on("resize", persistBounds);
-  mainWindow.on("move", persistBounds);
-  mainWindow.on("close", persistBounds);
+  trackWindowBounds(mainWindow, store);
 
   buildMenu(mainWindow, locale);
   updater = setupAutoUpdater(mainWindow, locale);

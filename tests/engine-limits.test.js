@@ -23,7 +23,7 @@ test("line-count limits fail explicitly before diffing", () => {
 // 세 가지 비교 단위(스마트/단어/글자)의 정확한 스펙:
 // "hotdoghotdoghotdog" -> "hotdoghotdoghotsausage" (공백 없는 문자열)
 //  - 스마트: 실제로 다른 부분("dog" -> "sausage")만 짚어낸다.
-//  - 글자: 마찬가지로 실제로 다른 부분만 짚어낸다 (항상 최소 공통 부분을 찾음).
+//  - 글자: 짧은 공통 문자도 보존한다.
 //  - 단어: 공백 기준 토큰이라 전체가 통째로 1개 단어 교체로 표시된다.
 
 function onlyChangedText(tokens) {
@@ -37,12 +37,26 @@ test("smart granularity finds the actual difference even without word boundaries
   assert.equal(onlyChangedText(modified.tokens), "sausage");
 });
 
-test("char granularity finds the actual difference even without word boundaries", () => {
-  const { rows } = engine().compute("hotdoghotdoghotdog", "hotdoghotdoghotsausage", { granularity: "char" });
-  const [{ original, modified }] = rows;
-  assert.equal(onlyChangedText(original.tokens), "dog");
-  assert.equal(onlyChangedText(modified.tokens), "sausage");
+test("character mode preserves short common fragments while smart mode groups edits", () => {
+  const chars = engine().compute("a1b", "x1y", { granularity: "char" }).rows[0];
+  assert.equal(onlyChangedText(chars.original.tokens), "ab");
+  assert.equal(onlyChangedText(chars.modified.tokens), "xy");
+  assert.equal(chars.original.tokens.find((part) => part.kind === "plain").text, "1");
+  const smart = engine().compute("a1b", "x1y", { granularity: "smart" }).rows[0];
+  assert.equal(onlyChangedText(smart.original.tokens), "a1b");
 });
+
+for (const [granularity, method] of [["smart", "diffWordsWithSpace"], ["smart", "diffChars"], ["char", "diffChars"], ["word", "diffWords"]]) {
+  test(`${granularity} handles ${method} timing out without losing line results`, () => {
+    const result = engine({ ...Diff, [method]: () => undefined }).compute("abc", "xyz", { granularity });
+    assert.equal(result.detailLimited, true);
+    assert.equal(result.identical, false);
+    assert.equal(result.stats.added, 1);
+    assert.equal(result.stats.removed, 1);
+    assert.equal(result.rows[0].original.tokens[0].text, "abc");
+    assert.equal(result.rows[0].modified.tokens[0].text, "xyz");
+  });
+}
 
 test("word granularity replaces the whole whitespace-free line as one token", () => {
   const { rows } = engine().compute("hotdoghotdoghotdog", "hotdoghotdoghotsausage", { granularity: "word" });

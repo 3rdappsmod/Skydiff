@@ -11,6 +11,8 @@ const assert = require("node:assert/strict");
 const profile = fs.mkdtempSync(path.join(os.tmpdir(), "skydiff-smoke-"));
 app.setPath("userData", profile);
 app.disableHardwareAcceleration();
+const legacyComparison = { id: "legacy", title: "Saved before migration", original: "이전 원본", modified: "이전 수정본" };
+fs.writeFileSync(path.join(profile, "skydiff-data.json"), JSON.stringify({ comparisons: [legacyComparison] }));
 const inputPath = path.join(profile, "input.txt");
 const outputPath = path.join(profile, "comparison.diff");
 fs.writeFileSync(inputPath, "가나다\n");
@@ -135,3 +137,10 @@ app.on("browser-window-created", (_event, window) => {
 
 const appRoot = process.env.SKYDIFF_SMOKE_APP || path.join(__dirname, "..");
 require(path.join(appRoot, "src/main/main.js"));
+
+// Verify migration with the actual electron-store implementation before the window is ready.
+const migratedStore = require(path.join(appRoot, "src/main/store.js"));
+assert.deepEqual(migratedStore.get("comparisons"), [legacyComparison]);
+assert.equal("comparisons" in JSON.parse(fs.readFileSync(path.join(profile, "skydiff-data.json"), "utf8")), false);
+assert.deepEqual(JSON.parse(fs.readFileSync(path.join(profile, "skydiff-comparisons.json"), "utf8")).comparisons, [legacyComparison]);
+migratedStore.set("comparisons", []);

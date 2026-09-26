@@ -37,9 +37,13 @@ function element() {
 }
 
 async function createApp() {
-  let data;
+  let data = {};
   vm.runInNewContext(source("src/main/store.js"), {
-    module: {}, require: () => ({ default: class { constructor(options) { data = options.defaults; } } })
+    module: {}, require: () => ({ default: class {
+      constructor(options) { this.data = options.defaults; Object.assign(data, this.data); }
+      has(key) { return key in this.data; }
+      get(key) { return this.data[key]; }
+    } })
   });
   data = JSON.parse(JSON.stringify(data));
   const handlers = {};
@@ -52,6 +56,7 @@ async function createApp() {
     require(name) {
       if (name === "electron") return electron;
       if (name === "./store") return { get: (key) => data[key], set: (key, value) => { data[key] = value; } };
+      if (name === "./window-state") return require("../src/main/window-state");
       if (name === "./menu") return { buildMenu() {} };
       if (name === "./updater") return { setupAutoUpdater() {} };
       if (name === "./i18n") return require("../src/main/i18n");
@@ -102,7 +107,14 @@ async function createApp() {
       vm.runInContext(source("src/renderer/js/diffWorker.js"), this.context);
     }
     postMessage(data) {
-      setImmediate(() => { if (!this.terminated) this.context.onmessage({ data }); });
+      setImmediate(() => {
+        if (this.terminated) return;
+        if (data.type === "compare" && api.failNextComparison) {
+          const error = api.failNextComparison;
+          api.failNextComparison = null;
+          this.onmessage({ data: { id: data.id, error } });
+        } else this.context.onmessage({ data });
+      });
     }
     terminate() { this.terminated = true; }
   }
@@ -338,4 +350,39 @@ test("collapsed rows stay in the worker and expansion is paginated without sprea
   await app.expand(placeholder);
   assert.equal(app.rows().length, 200);
   assert.equal(app.get("statAddedCount").textContent, "1 addition(s)");
+});
+
+test("failed option recomparison clears stale results and navigation, then allows retry", async () => {
+  const app = await createApp();
+  app.input("old", "new");
+  await app.click("btnCompare");
+  assert.equal(app.get("statRemovedCount").textContent, "1 deletion(s)");
+  app.api.failNextComparison = "comparisonTimeout";
+  await app.toggle("ignoreWhitespaceToggle", true);
+  assert.equal(app.get("statRemovedCount").textContent, "0 deletion(s)");
+  assert.equal(app.get("statAddedCount").textContent, "0 addition(s)");
+  assert.equal(app.get("diffContainer")["aria-busy"], "false");
+  assert.equal(app.get("resultPager").classList.contains("hidden"), true);
+  for (const id of ["btnFirstChange", "btnNextPage", "btnPrevPage"]) {
+    assert.equal(app.get(id).disabled, true);
+    await app.click(id);
+  }
+  assert.equal(app.get("diffContainer").children.length, 1);
+  assert.equal(app.get("warningBanner").classList.contains("hidden"), false);
+  await app.click("btnCompare");
+  assert.equal(app.get("statRemovedCount").textContent, "1 deletion(s)");
+  assert.equal(app.get("btnFirstChange").disabled, false);
+});
+
+test("option recomparison retains the display but disables stale navigation while pending", async () => {
+  const app = await createApp();
+  app.input("old", "new");
+  await app.click("btnCompare");
+  const rows = app.rows();
+  const pending = app.toggle("ignoreWhitespaceToggle", true);
+  assert.equal(app.rows(), rows);
+  assert.equal(app.get("btnFirstChange").disabled, true);
+  await app.click("btnFirstChange");
+  await pending;
+  assert.equal(app.get("btnFirstChange").disabled, false);
 });

@@ -68,7 +68,7 @@
   }
 
   function charDiff(Diff, oldLine, newLine) {
-    return mergeIsolatedCharMatches(Diff.diffChars(oldLine, newLine, { timeout: 20 }));
+    return Diff.diffChars(oldLine, newLine, { timeout: 20 });
   }
 
   function subDiff(oldLine, newLine, options) {
@@ -91,8 +91,11 @@
         // 공통 부분을 하나도 못 찾는 경우(예: "hotdoghotdoghotdog" -> "hotdoghotdoghotsausage")엔
         // 문자 단위로 다시 계산해 실제로 다른 부분("dog" -> "sausage")만 짚어낸다.
         const wordDiff = Diff.diffWordsWithSpace(oldLine, newLine, { timeout: 20 });
+        if (!wordDiff) return null;
         const hasCommonPart = wordDiff.some((part) => !part.added && !part.removed);
-        return hasCommonPart ? wordDiff : charDiff(Diff, oldLine, newLine);
+        if (hasCommonPart) return wordDiff;
+        const chars = charDiff(Diff, oldLine, newLine);
+        return chars ? mergeIsolatedCharMatches(chars) : null;
       }
     }
   }

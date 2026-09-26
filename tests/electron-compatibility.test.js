@@ -17,6 +17,7 @@ function clipboardHandler(writeText) {
         clipboard: { writeText }
       };
       if (name === "./store") return {};
+      if (name === "./window-state") return require("../src/main/window-state");
       if (name === "./menu") return { buildMenu() {} };
       if (name === "./updater") return { setupAutoUpdater() {} };
       if (name === "./i18n") return require("../src/main/i18n");

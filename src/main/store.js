@@ -28,9 +28,22 @@ const store = new Store({
         addedBg: "#dcfce7",
         removedBg: "#fee2e2"
       }
-    },
-    comparisons: [] // [{ id, title, description, createdAt, original, modified, settings }]
+    }
   }
 });
 
-module.exports = store;
+// Keep large comparison bodies out of the frequently updated settings file.
+const comparisons = new Store({ name: "skydiff-comparisons", defaults: { comparisons: [] } });
+if (store.has("comparisons")) {
+  const existing = comparisons.get("comparisons");
+  const ids = new Set(existing.map((entry) => entry.id));
+  const legacy = store.get("comparisons");
+  // Write the destination first. Retrying an interrupted migration preserves newer entries.
+  comparisons.set("comparisons", [...existing, ...legacy.filter((entry) => !ids.has(entry.id))]);
+  store.delete("comparisons");
+}
+
+module.exports = {
+  get(key) { return (key === "comparisons" ? comparisons : store).get(key); },
+  set(key, value) { return (key === "comparisons" ? comparisons : store).set(key, value); }
+};

@@ -241,6 +241,10 @@
 
   function setBusy(busy) {
     $("#diffContainer").setAttribute("aria-busy", String(busy));
+    const result = state.lastDiffResult;
+    $("#btnFirstChange").disabled = busy || !result || result.identical;
+    $("#btnPrevPage").disabled = busy || !result || result.page === 0;
+    $("#btnNextPage").disabled = busy || !result || result.page + 1 >= result.pages;
     clearTimeout(busyShowTimer);
     if (busy) {
       // 취소 버튼/'비교 처리 중' 문구는 일정 시간 이상 걸릴 때만 보여준다.
@@ -308,6 +312,7 @@
       return null;
     }
     state.compared = true;
+    state.lastDiffResult = null; // Keep the old DOM only while the replacement is pending.
     hideWarning();
     setBusy(true);
     try {
@@ -319,7 +324,10 @@
       if (result.identical) showWarning(window.SkyDiffI18n.t("textsIdentical"));
       return result;
     } catch (error) {
-      if (currentRevision === revision) showOperationError(error);
+      if (currentRevision === revision) {
+        invalidateComparison();
+        showOperationError(error);
+      }
       return null;
     } finally {
       if (currentRevision === revision) {
@@ -642,8 +650,8 @@
     });
 
     $("#btnFirstChange").addEventListener("click", () => changePage("first"));
-    $("#btnPrevPage").addEventListener("click", () => changePage("page", { index: state.lastDiffResult.page - 1 }));
-    $("#btnNextPage").addEventListener("click", () => changePage("page", { index: state.lastDiffResult.page + 1 }));
+    $("#btnPrevPage").addEventListener("click", () => state.lastDiffResult && changePage("page", { index: state.lastDiffResult.page - 1 }));
+    $("#btnNextPage").addEventListener("click", () => state.lastDiffResult && changePage("page", { index: state.lastDiffResult.page + 1 }));
     $("#btnCancelCompare").addEventListener("click", () => {
       invalidateComparison();
       showDiffPlaceholder(window.SkyDiffI18n.t("operationCanceled"));
