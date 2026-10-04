@@ -6,7 +6,7 @@ function trackWindowBounds(window, store) {
     clearTimeout(timer);
     timer = undefined;
     if (!window.isDestroyed()) {
-      store.set("windowBounds", { ...window.getBounds(), maximized: window.isMaximized() });
+      store.set("windowBounds", { ...window.getNormalBounds(), maximized: window.isMaximized() });
     }
   }
   function schedule() {

@@ -386,3 +386,75 @@ test("option recomparison retains the display but disables stale navigation whil
   await pending;
   assert.equal(app.get("btnFirstChange").disabled, false);
 });
+
+test("save failures show an error without losing the current comparison or claiming success", async () => {
+  const app = await createApp();
+  app.input("original", "modified");
+  const save = app.api.saveComparison;
+  app.api.saveComparison = async () => { throw new Error("disk full"); };
+  await app.click("btnSave");
+  assert.equal(app.data.comparisons.length, 0);
+  assert.equal(app.editors[0].getValue(), "original");
+  assert.equal(app.get("warningBanner").classList.contains("hidden"), false);
+  assert.equal(app.get("toast").classList.contains("show"), false);
+  app.api.saveComparison = save;
+  await app.click("btnSave");
+  assert.equal(app.data.comparisons.length, 1);
+});
+
+test("clipboard failures are reported for input copies and the repository link", async () => {
+  const app = await createApp();
+  app.input("original", "modified");
+  app.api.writeClipboard = async () => { throw new Error("clipboard unavailable"); };
+  for (const button of ["btnCopyOriginal", "btnCopyModified", "btnAboutGithub"]) {
+    app.get("warningBanner").classList.add("hidden");
+    await app.click(button);
+    assert.equal(app.get("warningBanner").classList.contains("hidden"), false);
+    assert.equal(app.get("toast").classList.contains("show"), false);
+  }
+});
+
+test("a delayed saved-list response cannot restore an entry removed by a newer refresh", async () => {
+  const app = await createApp();
+  app.input("old", "new");
+  await app.click("btnSave");
+  const list = app.data.comparisons;
+  let finish;
+  const getComparisons = app.api.getComparisons;
+  app.api.getComparisons = () => new Promise(resolve => { finish = resolve; });
+  const oldRefresh = app.click("btnSave");
+  while (!finish) await new Promise(resolve => setImmediate(resolve));
+  app.api.getComparisons = getComparisons;
+  const row = app.get("savedList").children[0];
+  await row.children[1].fire("click", { stopPropagation() {} });
+  assert.equal(app.data.comparisons.length, 0);
+  finish(list);
+  await oldRefresh;
+  await new Promise(resolve => setImmediate(resolve));
+  assert.equal(app.get("savedList").children.length, 1);
+  assert.equal(app.get("savedList").children[0].className, "empty-hint");
+});
+
+test("settings and saved-list read failures are handled without discarding the visible list", async () => {
+  const app = await createApp();
+  app.input("old", "new");
+  await app.click("btnSave");
+  app.api.setSettings = async () => { throw new Error("settings read-only"); };
+  await app.toggle("wordWrapToggle", true);
+  assert.equal(app.get("warningBanner").classList.contains("hidden"), false);
+  const list = app.get("savedList").children[0];
+  app.api.getComparisons = async () => { throw new Error("read failed"); };
+  await app.click("btnSave");
+  assert.equal(app.get("savedList").children[0], list);
+});
+
+test("saved comparisons using the removed line mode restore a valid selector", async () => {
+  const app = await createApp();
+  app.input("old", "new");
+  app.data.settings.granularity = "line";
+  await app.click("btnSave");
+  await app.get("savedList").children[0].fire("click");
+  assert.equal(app.get("granularitySelect").value, "smart");
+  await app.click("btnSave");
+  assert.equal(app.data.comparisons[0].settings.granularity, "smart");
+});

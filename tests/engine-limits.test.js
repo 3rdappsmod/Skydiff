@@ -46,7 +46,7 @@ test("character mode preserves short common fragments while smart mode groups ed
   assert.equal(onlyChangedText(smart.original.tokens), "a1b");
 });
 
-for (const [granularity, method] of [["smart", "diffWordsWithSpace"], ["smart", "diffChars"], ["char", "diffChars"], ["word", "diffWords"]]) {
+for (const [granularity, method] of [["smart", "diffWordsWithSpace"], ["smart", "diffChars"], ["char", "diffChars"], ["word", "diffWordsWithSpace"]]) {
   test(`${granularity} handles ${method} timing out without losing line results`, () => {
     const result = engine({ ...Diff, [method]: () => undefined }).compute("abc", "xyz", { granularity });
     assert.equal(result.detailLimited, true);
@@ -67,4 +67,22 @@ test("word granularity replaces the whole whitespace-free line as one token", ()
   assert.equal(modified.tokens.length, 1);
   assert.equal(modified.tokens[0].kind, "added");
   assert.equal(modified.tokens[0].text, "hotdoghotdoghotsausage");
+});
+
+for (const ignoreWhitespace of [false, true]) {
+  test(`word mode preserves each side's internal whitespace (ignoreWhitespace=${ignoreWhitespace})`, () => {
+    const result = engine().compute("a  b", "a b", { granularity: "word", ignoreWhitespace });
+    assert.equal(result.rows[0].original.tokens.map(t => t.text).join(""), "a  b");
+    assert.equal(result.rows[0].modified.tokens.map(t => t.text).join(""), "a b");
+    assert.equal(result.identical, false);
+  });
+}
+
+test("invalid active exclusion regex fails explicitly while disabled and literal patterns work", () => {
+  const options = { excludePatterns: [{ pattern: "[", isRegex: true, enabled: true }] };
+  assert.throws(() => engine().compute("abc", "xyz", options), /invalidPattern/);
+  options.excludePatterns[0].enabled = false;
+  assert.equal(engine().compute("abc", "xyz", options).identical, false);
+  options.excludePatterns[0] = { pattern: "[", isRegex: false, enabled: true };
+  assert.equal(engine().compute("[old", "[new", options).identical, true);
 });

@@ -19,7 +19,7 @@
   function applyExclude(lines, excludePatterns) {
     const patterns = (excludePatterns || []).filter((rule) => rule.enabled && rule.pattern).map((rule) => {
       try { return new RegExp(rule.isRegex ? rule.pattern : escapeRegExp(rule.pattern)); }
-      catch { return null; }
+      catch (cause) { throw new Error("invalidPattern", { cause }); }
     }).filter(Boolean);
     return patterns.length ? lines.filter((line) => !patterns.some((re) => re.test(line))) : lines;
   }
@@ -72,7 +72,7 @@
   }
 
   function subDiff(oldLine, newLine, options) {
-    const { granularity, ignoreWhitespace } = options;
+    const { granularity } = options;
     if (oldLine.length + newLine.length > 4000 || Date.now() > options.inlineDeadline) {
       options.detailLimited = true;
       return null;
@@ -81,7 +81,7 @@
     switch (granularity) {
       case "word":
         // 단어 단위: 공백으로 토큰을 나누므로 공백 없이 이어진 문자열은 통째로 1개 토큰 교체가 된다.
-        return Diff.diffWords(oldLine, newLine, { ignoreWhitespace, timeout: 20 });
+        return Diff.diffWordsWithSpace(oldLine, newLine, { timeout: 20 });
       case "char":
         // 문자 단위: 항상 최소 공통 부분까지 찾아낸다.
         return charDiff(Diff, oldLine, newLine);

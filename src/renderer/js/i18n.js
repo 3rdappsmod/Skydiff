@@ -6,6 +6,7 @@
  */
 (function (global) {
   const STRINGS = {
+    invalidPattern: { ko: "제외 패턴의 정규식이 올바르지 않습니다. 패턴을 수정해 주세요.", en: "An exclusion regular expression is invalid. Please correct the pattern." },
     autoEncoding: { ko: "자동 감지", en: "Auto-detect" },
     fileEncoding: { ko: "파일 인코딩 (열기·드롭 전에 선택)", en: "File encoding (select before opening or dropping)" },
     fileEncodingLoaded: { ko: "{encoding} 파일을 열었습니다.", en: "Opened as {encoding}." },

@@ -19,6 +19,7 @@
   let scheduleCompare = null;
   let revision = 0;
   let viewRequest = 0;
+  let savedListRequest = 0;
   let busyShowTimer = null;
   const BUSY_SHOW_DELAY_MS = 300; // 금방 끝나는 비교는 '비교 처리 중' 표시가 깜빡이지 않도록 지연
 
@@ -87,12 +88,22 @@
     };
   }
 
-  function persistSettings() {
-    window.skydiff.setSettings(state.settings);
+  async function persistSettings() {
+    try { await window.skydiff.setSettings(state.settings); }
+    catch (error) { showOperationError(error); }
+  }
+
+  async function copyText(text, message) {
+    try {
+      await window.skydiff.writeClipboard(text);
+      toast(window.SkyDiffI18n.t(message));
+    } catch (error) { showOperationError(error); }
   }
 
   function applySettingsToUI() {
     const s = state.settings;
+    // Older profiles and saved comparisons may still contain the removed line mode.
+    if (!["smart", "word", "char"].includes(s.granularity)) s.granularity = "smart";
 
     document.querySelectorAll("#layoutToggle .seg-btn").forEach((btn) => {
       btn.classList.toggle("active", btn.dataset.value === s.layout);
@@ -261,7 +272,7 @@
 
   function showOperationError(error) {
     if (error.message === "operationCanceled") return;
-    const key = ["comparisonTimeout", "textTooLarge", "tooManyLines", "invalidEncoding", "fileTooLarge"].find((name) => error.message.includes(name));
+    const key = ["comparisonTimeout", "textTooLarge", "tooManyLines", "invalidEncoding", "fileTooLarge", "invalidPattern"].find((name) => error.message.includes(name));
     showWarning(window.SkyDiffI18n.t(key || "operationFailed"));
   }
 
@@ -480,7 +491,14 @@
   }
 
   async function refreshSavedList() {
-    const list = await window.skydiff.getComparisons();
+    const request = ++savedListRequest;
+    let list;
+    try { list = await window.skydiff.getComparisons(); }
+    catch (error) {
+      if (request === savedListRequest) showOperationError(error);
+      return;
+    }
+    if (request !== savedListRequest) return;
     const el = $("#savedList");
     el.textContent = "";
 
@@ -514,8 +532,10 @@
       delBtn.title = window.SkyDiffI18n.t("delete");
       delBtn.addEventListener("click", async (e) => {
         e.stopPropagation();
-        await window.skydiff.deleteComparison(item.id);
-        refreshSavedList();
+        try {
+          await window.skydiff.deleteComparison(item.id);
+          await refreshSavedList();
+        } catch (error) { showOperationError(error); }
       });
 
       row.addEventListener("click", () => loadComparison(item));
@@ -555,9 +575,11 @@
       modified,
       settings: state.settings
     };
-    await window.skydiff.saveComparison(payload);
-    toast(window.SkyDiffI18n.t("comparisonSaved"));
-    refreshSavedList();
+    try {
+      await window.skydiff.saveComparison(payload);
+      toast(window.SkyDiffI18n.t("comparisonSaved"));
+      await refreshSavedList();
+    } catch (error) { showOperationError(error); }
   }
 
   // ---------------- 내보내기 / 공유 / 복사 ----------------
@@ -641,12 +663,10 @@
     });
 
     $("#btnCopyOriginal").addEventListener("click", async () => {
-      await window.skydiff.writeClipboard(getEditorValues().original);
-      toast(window.SkyDiffI18n.t("originalCopied"));
+      await copyText(getEditorValues().original, "originalCopied");
     });
     $("#btnCopyModified").addEventListener("click", async () => {
-      await window.skydiff.writeClipboard(getEditorValues().modified);
-      toast(window.SkyDiffI18n.t("modifiedCopied"));
+      await copyText(getEditorValues().modified, "modifiedCopied");
     });
 
     $("#btnFirstChange").addEventListener("click", () => changePage("first"));
@@ -748,8 +768,7 @@
     });
 
     $("#btnAboutGithub").addEventListener("click", () => {
-      window.skydiff.writeClipboard("https://github.com/3rdappsmod/SkyDiff");
-      toast(window.SkyDiffI18n.t("githubUrlCopied"));
+      return copyText("https://github.com/3rdappsmod/SkyDiff", "githubUrlCopied");
     });
 
     wireDragAndDrop($("#originalEditor"), originalEditor);

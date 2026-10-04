@@ -70,7 +70,8 @@ test("window movements are debounced and the latest bounds flush on close", () =
   vm.runInNewContext(source("window-state.js"), context);
   const win = new EventEmitter();
   let x = 0;
-  win.getBounds = () => ({ x, y: 0, width: 1000, height: 800 });
+  win.getNormalBounds = () => ({ x, y: 0, width: 1000, height: 800 });
+  win.getBounds = () => win.isMaximized() ? { x: 0, y: 0, width: 1920, height: 1080 } : win.getNormalBounds();
   win.isMaximized = () => false;
   win.isDestroyed = () => false;
   const writes = [];
@@ -82,10 +83,13 @@ test("window movements are debounced and the latest bounds flush on close", () =
   assert.equal(writes.length, 1);
   assert.equal(writes[0].x, x);
   x = 20;
+  win.isMaximized = () => true;
   win.emit("move");
   win.emit("close");
   assert.equal(writes.length, 2);
   assert.equal(writes[1].x, 20);
+  assert.equal(writes[1].width, 1000);
+  assert.equal(writes[1].maximized, true);
   assert.equal(timers.size, 0);
   win.emit("move");
   win.emit("closed");
