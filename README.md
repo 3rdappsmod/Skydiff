@@ -74,6 +74,7 @@ GitHub Releases의 **초안**으로 업로드합니다. 양쪽 OS의 빌드 성�
 Dependabot은 매주 의존성 업데이트를 제안합니다. 자동 병합을 사용하려면 GitHub 저장소의
 auto-merge를 켜고, 기본 브랜치(`main` 또는 `master`) 보호 규칙에서 lint(회귀 테스트 포함)와 Windows/Linux 빌드를
 필수 상태 검사로 지정하세요. patch/minor만 자동 병합하며 major는 직접 검토합니다.
+자동 병합 작업은 해당 PR 커밋의 CI 성공을 직접 기다리고, 커밋이 바뀌었으면 병합하지 않습니다.
 CI는 Windows/Linux에서 실제 Electron 실행 검사와 설치 파일 빌드를 수행합니다.
 Linux CI는 Xvfb 안에서 테스트 프로세스에만 `--no-sandbox`를 사용합니다. 일반 앱 실행 옵션은 바꾸지 않습니다.
 설치 마법사 자체와 설치 후 실행은 별도의 실제 환경 검증 대상입니다.

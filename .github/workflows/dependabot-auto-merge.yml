@@ -5,6 +5,7 @@ on:
     branches: [main, master]
 
 permissions:
+  actions: read
   contents: write
   pull-requests: write
 
@@ -12,6 +13,10 @@ jobs:
   auto-merge:
     if: github.actor == 'dependabot[bot]'
     runs-on: ubuntu-latest
+    timeout-minutes: 30
+    concurrency:
+      group: dependabot-auto-merge-${{ github.event.pull_request.number }}
+      cancel-in-progress: true
     steps:
       - name: Dependabot 메타데이터 조회
         id: metadata
@@ -21,7 +26,30 @@ jobs:
 
       - name: patch/minor 버전만 자동 병합 (major는 사람이 확인)
         if: steps.metadata.outputs.update-type == 'version-update:semver-patch' || steps.metadata.outputs.update-type == 'version-update:semver-minor'
-        run: gh pr merge --auto --squash "$PR_URL"
+        # No PR checkout: this job has write permissions and only runs trusted workflow code.
+        # --auto alone can merge immediately when the branch has no required checks.
+        run: |
+          run_id=""
+          for attempt in {1..60}; do
+            run_id=$(gh api --method GET "repos/$GH_REPO/actions/workflows/ci.yml/runs" \
+              -f head_sha="$PR_HEAD_SHA" -f event=pull_request -f per_page=1 \
+              --jq '.workflow_runs[0].id // empty')
+            if [ -n "$run_id" ]; then break; fi
+            sleep 5
+          done
+          if [ -z "$run_id" ]; then
+            echo "::error::No pull-request CI run found for $PR_HEAD_SHA; refusing to merge."
+            exit 1
+          fi
+          gh run watch "$run_id" --repo "$GH_REPO" --exit-status --interval 10
+          conclusion=$(gh run view "$run_id" --repo "$GH_REPO" --json conclusion --jq .conclusion)
+          if [ "$conclusion" != success ]; then
+            echo "::error::CI conclusion is $conclusion; refusing to merge."
+            exit 1
+          fi
+          gh pr merge --auto --squash --match-head-commit "$PR_HEAD_SHA" "$PR_URL"
         env:
           PR_URL: ${{ github.event.pull_request.html_url }}
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}
+          PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
